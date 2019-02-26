@@ -1,1 +1,0 @@
-/usr/bin/c++         CMakeFiles/IKAlgorithms.dir/main.cpp.o  -o IKAlgorithms  -L/home/vagrant/BTKCore/build/bin -rdynamic -lBTKIO /home/vagrant/ik/build/ik/ik.a -lBTKCommon -Wl,-rpath,/home/vagrant/BTKCore/build/bin 
