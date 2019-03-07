@@ -4,7 +4,6 @@
 #include <btkC3DFileIO.h>
 #include <iostream>
 #include <typeinfo>
-#include <ik.h>
 
 btk::Acquisition::Pointer readAcquisition(const std::string& filename)
 {
@@ -85,7 +84,7 @@ std::vector<double> pointAt(btk::Point::Pointer itP, int frameNumber){
 	return point;
 }
 
-void writeIk(btk::Acquisition::Pointer acq){
+btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq){
 	btk::Acquisition::Pointer printAcquisition = acq->Clone();
 	btk::Point::Pointer waistPoint = btk::Point::New("Skeleton_001:WaistLFront2", acq->GetPointFrameNumber());
 	btk::Point::Pointer kneePoint = btk::Point::New("Skeleton_001:LKneeOut2", acq->GetPointFrameNumber());
@@ -93,62 +92,25 @@ void writeIk(btk::Acquisition::Pointer acq){
 	btk::Point::Pointer tipToePoint = btk::Point::New("Skeleton_001:LToeTip2", acq->GetPointFrameNumber());
 
 	std::cout << acq->GetPointFrameNumber() << std::endl;
-    struct ik_solver_t* solver = ik.solver.create(IK_FABRIK);
-
-    /* Create a simple 3-bone structure */
-    struct ik_node_t* root = solver->node->create(0);
-    struct ik_node_t* child1 = solver->node->create_child(root, 1);
-    struct ik_node_t* child2 = solver->node->create_child(child1, 2);
-    struct ik_node_t* child3 = solver->node->create_child(child2, 3);
-
 	std::vector<double> waist = pointAt(acq->GetPoint("Skeleton_001:WaistLFront"),0);
 	std::vector<double> knee = pointAt(acq->GetPoint("Skeleton_001:LKneeOut"),0);
 	std::vector<double> heel = pointAt(acq->GetPoint("Skeleton_001:LHeel"),0);
-
-    /* Set node positions in local space so they form a straight line in the Y direction*/
-    child1->position = ik.vec3.vec3(waist.at(0), waist.at(1), waist.at(2));
-    child2->position = ik.vec3.vec3(knee.at(0), knee.at(1), knee.at(2));
-    child3->position = ik.vec3.vec3(heel.at(0), heel.at(1), heel.at(2));
-
-    /* Attach an effector at the end */
-    struct ik_effector_t* eff = solver->effector->create();
-    solver->effector->attach(eff, child3);
-    solver->flags |= IK_ENABLE_TARGET_ROTATIONS;
     std::vector<double> tipToePoint0 = pointAt(acq->GetPoint("Skeleton_001:LToeTip"),0);
-	eff->target_position = ik.vec3.vec3(tipToePoint0.at(0), tipToePoint0.at(1), tipToePoint0.at(2));
-	ik.solver.set_tree(solver, root);
 
     for(size_t index = 0; index < acq->GetPointFrameNumber() ; index++){
 	    /* set the target position of the effector to be somewhere within range */
 	    std::vector<double> toeTop = pointAt(acq->GetPoint("Skeleton_001:LToeTip"),index);
-	    eff->target_position = ik.vec3.vec3(toeTop.at(0), toeTop.at(1), toeTop.at(2));
-	    /* We want to calculate rotations as well as positions */
-	 
-	    /* Assign our tree to the solver, rebuild data and calculate solution */
-	    ik.solver.rebuild(solver);
-	    ik.solver.solve(solver);
-	    
-	    waistPoint->SetDataSlice(index, child1->position.x, child1->position.y, child1->position.z);
-		kneePoint->SetDataSlice(index, child2->position.x, child2->position.y, child2->position.z);
-		heelPoint->SetDataSlice(index, child3->position.x, child3->position.y, child3->position.z);
-		tipToePoint->SetDataSlice(index, toeTop.at(0), toeTop.at(1), toeTop.at(2));
-
-
-	    std::cout << " " << child1->position.x << " " << child1->position.y << " " << child1->position.z << std::endl;
-	    std::cout << " " << child2->position.x << " " << child2->position.y << " " << child2->position.z << std::endl;
-	    std::cout << " " << child3->position.x << " " << child3->position.y << " " << child3->position.z << std::endl << std::endl;
-    }
     printAcquisition->SetPoint(0, waistPoint);
     printAcquisition->SetPoint(4, kneePoint);
     printAcquisition->SetPoint(10, heelPoint);
     printAcquisition->SetPoint(11, tipToePoint);
-    writeAcquisition(printAcquisition, "/home/vagrant/test_data.c3d");
+   	return printAcquisition; 
 }
 
-int main()
+int main(int argc, char** argv)
 {
-	btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/test_data.c3d");
-   	writeIk(acq);
-
+	btk::Acquisition::Pointer acq = readAcquisition(argv[1]);
+   	btk::Acquisition::Pointer ikAcq = writeIk(acq);
+   	writeAcquisition(ikAcq, argv[2]);
 	return 0;
 };

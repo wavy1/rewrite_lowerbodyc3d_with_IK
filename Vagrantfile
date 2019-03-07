@@ -69,28 +69,15 @@ Vagrant.configure("2") do |config|
     sudo apt-get install make -y
     sudo apt-get install git -y
     sudo apt-get install g++ -y
-    git clone https://github.com/Biomechanical-ToolKit/BTKCore.git && cd BTKCore
-    mkdir build && cd build
+    sudo apt-get install gdb -y
+    sudo git clone https://github.com/Biomechanical-ToolKit/BTKCore.git && cd BTKCore
+    sudo mkdir build && cd build
     sudo cmake ..
     sudo make
-    sudo apt-get remove --purge --auto-remove cmake
-  	cd ~/
-  	mkdir temp && cd temp
-  	wget https://cmake.org/files/v3.3/cmake-3.3.2.tar.gz --no-check-certificate
-  	tar -xzvf cmake-3.3.2.tar.gz
-  	cd cmake-3.3.2/
-  	./bootstrap
-  	make -j4
-  	make install
-  	cmake --v
-  	cd ~/
-  	sudo apt-get install software-properties-common python-software-properties -y
-  	sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-  	sudo apt-get update
-  	sudo apt-get install gcc-4.9 g++-4.9 -y
-  	sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 50 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9 
-    git clone https://github.com/TheComet/ik && cd ik
-    mkdir build && cd build
+    cd ~/
+    sudo git clone https://github.com/eigenteam/eigen-git-mirror.git && cd eigen-git-mirror
+    sudo git checkout branches/3.2
+    sudo mkdir build && cd build
     sudo cmake ..
     sudo make
   SHELL
