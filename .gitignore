@@ -9,3 +9,5 @@ compile_commands.json
 CTestTestfile.cmake
 .vagrant/
 build/
+cmake-build-debug/
+.idea/
