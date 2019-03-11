@@ -111,10 +111,17 @@ std::vector<Eigen::Vector3f> getSecondsVector(std::vector<std::pair<std::string,
     return vectors;
 }
 
+std::vector<std::pair<std::string, Eigen::Vector3f> > setVectorInPair(std::vector<std::pair<std::string, Eigen::Vector3f> > pairs, std::vector<Eigen::Vector3f> vectors) {
+    for(size_t index = 0; index < vectors.size(); ++index){
+        pairs.at(index) = std::make_pair(pairs.at(index).first, vectors.at(index));
+    }
+    return pairs;
+}
+
 
 btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
     std::vector<std::pair<std::string, Eigen::Vector3f> > joints;
-    float tolerance = 0.1f;
+    float tolerance = 0.001f;
     std::pair<std::string, Eigen::Vector3f> target;
     std::pair<std::string, Eigen::Vector3f> origin;
     std::vector<std::pair<std::string, float> > distances;
@@ -131,21 +138,17 @@ btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
     btk::Point::Pointer heelPoint = btk::Point::New("Skeleton_001:LHeel2", acq->GetPointFrameNumber());
     btk::Point::Pointer tipToePoint = btk::Point::New("Skeleton_001:LToeTip2", acq->GetPointFrameNumber());
 
-    std::cout << "Number of frames" << acq->GetPointFrameNumber() << std::endl;
-
 
     Eigen::Vector3f waist = pointAt(acq->GetPoint("Skeleton_001:WaistLFront"), 0);
     Eigen::Vector3f knee = pointAt(acq->GetPoint("Skeleton_001:LKneeOut"), 0);
     Eigen::Vector3f heel = pointAt(acq->GetPoint("Skeleton_001:LHeel"), 0);
     Eigen::Vector3f tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 0);
-    tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 1);
 
     joints.push_back(std::make_pair("p1", Eigen::Vector3f(waist.coeff(0), waist.coeff(1), waist.coeff(2))));
     joints.push_back(std::make_pair("p2", Eigen::Vector3f(knee.coeff(0), knee.coeff(1), knee.coeff(2))));
     joints.push_back(std::make_pair("p3", Eigen::Vector3f(heel.coeff(0), heel.coeff(1), heel.coeff(2))));
     origin = std::make_pair("O", Eigen::Vector3f(waist.coeff(0), waist.coeff(1), waist.coeff(2)));
     target = std::make_pair("T", Eigen::Vector3f(tipToe.coeff(0), tipToe.coeff(1), tipToe.coeff(2)));
-    tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 0);
 
     for (size_t index = 0; index < joints.size(); ++index) {
         if (index + 1 < joints.size()) {
@@ -154,28 +157,33 @@ btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
             std::cout << "distance: " << distances.at(index).first << ": " << distances.at(index).second << std::endl;
             sumOfAllLengths += (joints.at(index + 1).second - joints.at(index).second).norm();
         }
-        std::cout << joints.at(index).first << std::endl << joints.at(index).second << std::endl;
+        std::cout << joints.at(index).first << ": [" << joints.at(index).second.coeff(0) << "," << joints.at(index).second.coeff(1)<< "," << joints.at(index).second.coeff(2) << "]" << std::endl;
     }
 
-    tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 1);
     FabrikSolve fabrikSolve(getSecondsVector(joints), target.second, origin.second, sumOfAllLengths,
                             getSecondsFloat(distances), tolerance);
     fabrikSolve.solve();
 
-    tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 1);
+    joints = setVectorInPair(joints, fabrikSolve.getJoints());
     std::cout << "Sum: " << std::endl;
 
-    for (size_t index = 0; index < acq->GetPointFrameNumber(); ++index) {
-        /* set the target position of the effector to be somewhere within range */
-        std::cout << index << std::endl;
-        std::cout << acq << std::endl;
+    std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
+    for (size_t index = 0; index < acq->GetPointFrameNumber(); index++) {
+        std::cout << "Index: " << index << std::endl;
         tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), index);
+        fabrikSolve.setTarget(tipToe);
+        fabrikSolve.solve();
+        joints = setVectorInPair(joints, fabrikSolve.getJoints());
+
+        waistPoint->SetDataSlice(index, joints.at(0).second.coeff(0), joints.at(0).second.coeff(1), joints.at(0).second.coeff(2));
+        kneePoint->SetDataSlice(index, joints.at(1).second.coeff(0), joints.at(1).second.coeff(1), joints.at(1).second.coeff(2));
+        heelPoint->SetDataSlice(index, joints.at(2).second.coeff(0), joints.at(2).second.coeff(1), joints.at(2).second.coeff(2));
+
         printAcquisition->SetPoint(0, waistPoint);
         printAcquisition->SetPoint(4, kneePoint);
         printAcquisition->SetPoint(10, heelPoint);
-        printAcquisition->SetPoint(11, tipToePoint);
-        return printAcquisition;
     }
+    return printAcquisition;
 }
 
 int main(int argc, char **argv) {

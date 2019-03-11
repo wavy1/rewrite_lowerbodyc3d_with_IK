@@ -18,6 +18,10 @@ public:
 
     void solve();
 
+    const std::vector<Eigen::Vector3f> &getJoints() const;
+
+    void setTarget(const Eigen::Vector3f &target);
+
 private:
     void chain_backwards();
     void chain_forwards();
