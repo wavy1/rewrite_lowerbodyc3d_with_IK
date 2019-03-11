@@ -3,6 +3,7 @@
 //
 
 #include "FabrikSolve.h"
+#include <vector>
 #include <iostream>
 
 void FabrikSolve::chain_backwards(){
@@ -13,11 +14,11 @@ void FabrikSolve::chain_backwards(){
     Eigen::Vector3f position;
     for(size_t index = joints.size()-2; index > 0;--index){
 
-        r = (*joints.at(index+1) - *joints.at(index)).norm();
-        l = *distances.at(index) / r;
+        r = (joints.at(index+1) - joints.at(index)).norm();
+        l = distances.at(index) / r;
 
-        position = (1 - l) * *joints.at(index + 1) + l * *joints.at(index);
-        joints.at(index) = std::make_shared<Eigen::Vector3f>(position);
+        position = (1 - l) * joints.at(index + 1) + l * joints.at(index);
+        joints.at(index) = position;
     }
 }
 
@@ -27,34 +28,35 @@ void FabrikSolve::chain_forwards() {
     float r;
     float l;
     for(size_t index = 0; index < joints.size()-2; ++index){
-        r = (*joints.at(index+1) - *joints.at(index)).norm();
-        l = *distances.at(index) / r;
+        r = (joints.at(index+1) - joints.at(index)).norm();
+        l = distances.at(index) / r;
 
-        position = (1 - l) * *joints.at(index) + l * *joints.at(index+1);
-        joints.at(index+1) = std::make_shared<Eigen::Vector3f>(position);
+        position = (1 - l) * joints.at(index) + l * joints.at(index+1);
+        joints.at(index+1) = position;
     }
 }
 
 void FabrikSolve::solve() {
-    float distance = (*joints.at(joints.size() - 1) - *target).norm();
+    float distance = (joints.at(joints.size() - 1) - target).norm();
     float r;
     float l;
     float dif;
     int bcount;
     if (distance > totalLength) {
         for (size_t index = 0; index < joints.size(); ++index) {
-            r = (*target - *joints.at(index)).norm();
-            l = *distances.at(index) / r;
+            r = (target - joints.at(index)).norm();
+            l = distances.at(index) / r;
             if((index + 1) < joints.size())
-                joints.at(index + 1) = std::make_shared<Eigen::Vector3f>(((1 - l) * *joints.at(index)) + (l * *target));
+                joints.at(index + 1) = ((1 - l) * joints.at(index)) + (l * target);
         }
     } else {
+
         bcount = 0;
-        dif = (*joints.at(joints.size()-1) - *target).norm();
+        dif = (joints.at(joints.size()-1) - target).norm();
         while (dif > tolerance) {
             chain_backwards();
             chain_forwards();
-            dif = (*joints.at(joints.size() - 1) - *target).norm();
+            dif = (joints.at(joints.size() - 1) - target).norm();
 
             bcount = bcount + 1;
             if (bcount > 10) {
@@ -64,8 +66,8 @@ void FabrikSolve::solve() {
     }
 }
 
-FabrikSolve::FabrikSolve(std::vector<std::shared_ptr<Eigen::Vector3f> >  joints, std::shared_ptr<Eigen::Vector3f> target,
-                         std::shared_ptr<Eigen::Vector3f> origin, float totalLength, std::vector<std::shared_ptr<float> > distances,
+FabrikSolve::FabrikSolve(std::vector<Eigen::Vector3f> joints, Eigen::Vector3f target,
+                         Eigen::Vector3f origin, float totalLength, std::vector<float> distances,
                          float tolerance) {
     this->joints = joints;
     this->target = target;

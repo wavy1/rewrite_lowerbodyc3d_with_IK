@@ -8,13 +8,11 @@
 
 #include <Eigen/Dense>
 #include <vector>
-#include <memory>
 
 class FabrikSolve {
 public:
-    FabrikSolve(std::vector<std::shared_ptr<Eigen::Vector3f> >  joints, std::shared_ptr<Eigen::Vector3f> target,
-                std::shared_ptr<Eigen::Vector3f> origin, float totalLength, std::vector<std::shared_ptr<float> > distances,
-                float tolerance);
+    FabrikSolve(std::vector<Eigen::Vector3f> joints, Eigen::Vector3f target, Eigen::Vector3f origin,
+                float totalLength, std::vector<float> distances, float tolerance);
 
     virtual ~FabrikSolve();
 
@@ -23,11 +21,11 @@ public:
 private:
     void chain_backwards();
     void chain_forwards();
-    std::vector<std::shared_ptr<Eigen::Vector3f> > joints;
-    std::shared_ptr<Eigen::Vector3f> target;
-    std::shared_ptr<Eigen::Vector3f> origin;
+    std::vector<Eigen::Vector3f> joints;
+    Eigen::Vector3f target;
+    Eigen::Vector3f origin;
     float totalLength;
-    std::vector<std::shared_ptr<float> > distances;
+    std::vector<float> distances;
     float tolerance;
 };
 

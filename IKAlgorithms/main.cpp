@@ -79,11 +79,10 @@ void printPointsWithLabel(btk::Acquisition::Pointer acq, std::string labelStr) {
     }
 }
 
-std::shared_ptr<Eigen::Vector3f> pointAt(btk::Point::Pointer itP, int frameNumber) {
-    std::shared_ptr<Eigen::Vector3f> point(std::make_shared<Eigen::Vector3f>(Eigen::Vector3f(
-            (const float &) itP->GetValues().coeff(frameNumber, 0),
-            (const float &) itP->GetValues().coeff(frameNumber, 1),
-            (const float &) itP->GetValues().coeff(frameNumber, 2))));
+Eigen::Vector3f pointAt(btk::Point::Pointer itP, int frameNumber) {
+    Eigen::Vector3f point(itP->GetValues().coeff(frameNumber, 0),
+                          itP->GetValues().coeff(frameNumber, 1),
+                          itP->GetValues().coeff(frameNumber, 2));
     return point;
 }
 
@@ -96,16 +95,16 @@ float sum(std::vector<float> summands) {
 }
 
 
-std::vector<std::shared_ptr<float> > getSecondsFloat(std::vector<std::pair<std::string, float> > pairs) {
-    std::vector<std::shared_ptr<float> > floats;
+std::vector<float> getSecondsFloat(std::vector<std::pair<std::string, float> > pairs) {
+    std::vector<float> floats;
     for (size_t index = 0; index < pairs.size(); ++index) {
-        floats.push_back(std::make_shared<float>(pairs.at(index).second));
+        floats.push_back(pairs.at(index).second);
     }
     return floats;
 }
 
-std::vector<std::shared_ptr<Eigen::Vector3f> > getSecondsVector(std::vector<std::pair<std::string, std::shared_ptr<Eigen::Vector3f> > > pairs) {
-    std::vector<std::shared_ptr<Eigen::Vector3f> > vectors;
+std::vector<Eigen::Vector3f> getSecondsVector(std::vector<std::pair<std::string, Eigen::Vector3f> > pairs) {
+    std::vector<Eigen::Vector3f> vectors;
     for (size_t index = 0; index < pairs.size(); ++index) {
         vectors.push_back(pairs.at(index).second);
     }
@@ -114,10 +113,10 @@ std::vector<std::shared_ptr<Eigen::Vector3f> > getSecondsVector(std::vector<std:
 
 
 btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
-    std::vector<std::pair<std::string, std::shared_ptr<Eigen::Vector3f> > > joints;
+    std::vector<std::pair<std::string, Eigen::Vector3f> > joints;
     float tolerance = 0.1f;
-    std::pair<std::string, std::shared_ptr<Eigen::Vector3f> > target;
-    std::pair<std::string, std::shared_ptr<Eigen::Vector3f> > origin;
+    std::pair<std::string, Eigen::Vector3f> target;
+    std::pair<std::string, Eigen::Vector3f> origin;
     std::vector<std::pair<std::string, float> > distances;
     float sumOfAllLengths;
     bool constrained = false;
@@ -134,37 +133,34 @@ btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
 
     std::cout << "Number of frames" << acq->GetPointFrameNumber() << std::endl;
 
-    std::shared_ptr<Eigen::Vector3f> waist = pointAt(acq->GetPoint("Skeleton_001:WaistLFront"), 0);
-    std::shared_ptr<Eigen::Vector3f> knee = pointAt(acq->GetPoint("Skeleton_001:LKneeOut"), 0);
-    std::shared_ptr<Eigen::Vector3f> heel = pointAt(acq->GetPoint("Skeleton_001:LHeel"), 0);
-    std::shared_ptr<Eigen::Vector3f> tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 0);
+
+    Eigen::Vector3f waist = pointAt(acq->GetPoint("Skeleton_001:WaistLFront"), 0);
+    Eigen::Vector3f knee = pointAt(acq->GetPoint("Skeleton_001:LKneeOut"), 0);
+    Eigen::Vector3f heel = pointAt(acq->GetPoint("Skeleton_001:LHeel"), 0);
+    Eigen::Vector3f tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 0);
     tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 1);
 
-    joints.push_back(std::make_pair("p1", waist));
-    joints.push_back(std::make_pair("p2", knee));
-    joints.push_back(std::make_pair("p3", heel));
-
-    origin = std::make_pair("O", waist);
-    target = std::make_pair("T", tipToe);
+    joints.push_back(std::make_pair("p1", Eigen::Vector3f(waist.coeff(0), waist.coeff(1), waist.coeff(2))));
+    joints.push_back(std::make_pair("p2", Eigen::Vector3f(knee.coeff(0), knee.coeff(1), knee.coeff(2))));
+    joints.push_back(std::make_pair("p3", Eigen::Vector3f(heel.coeff(0), heel.coeff(1), heel.coeff(2))));
+    origin = std::make_pair("O", Eigen::Vector3f(waist.coeff(0), waist.coeff(1), waist.coeff(2)));
+    target = std::make_pair("T", Eigen::Vector3f(tipToe.coeff(0), tipToe.coeff(1), tipToe.coeff(2)));
     tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 0);
 
     for (size_t index = 0; index < joints.size(); ++index) {
         if (index + 1 < joints.size()) {
             distances.push_back(std::make_pair(joints.at(index + 1).first + joints.at(index).first,
-                                               (*joints.at(index + 1).second - *joints.at(index).second).norm()));
+                                               (joints.at(index + 1).second - joints.at(index).second).norm()));
             std::cout << "distance: " << distances.at(index).first << ": " << distances.at(index).second << std::endl;
-            sumOfAllLengths += (*joints.at(index + 1).second - *joints.at(index).second).norm();
+            sumOfAllLengths += (joints.at(index + 1).second - joints.at(index).second).norm();
         }
         std::cout << joints.at(index).first << std::endl << joints.at(index).second << std::endl;
     }
 
     tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 1);
-
-    if (true) {
-        FabrikSolve fabrikSolve(getSecondsVector(joints), target.second, origin.second, sumOfAllLengths,
-                                getSecondsFloat(distances), tolerance);
-        fabrikSolve.solve();
-    }
+    FabrikSolve fabrikSolve(getSecondsVector(joints), target.second, origin.second, sumOfAllLengths,
+                            getSecondsFloat(distances), tolerance);
+    fabrikSolve.solve();
 
     tipToe = pointAt(acq->GetPoint("Skeleton_001:LToeTip"), 1);
     std::cout << "Sum: " << std::endl;
