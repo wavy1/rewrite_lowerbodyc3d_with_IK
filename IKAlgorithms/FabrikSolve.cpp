@@ -120,3 +120,11 @@ void FabrikSolve::setTarget(const Eigen::Vector3f &target) {
     FabrikSolve::target = target;
 }
 
+void FabrikSolve::setOrigin(const Eigen::Vector3f &origin) {
+    FabrikSolve::origin = origin;
+}
+
+void FabrikSolve::setJointAt(Eigen::Vector3f newJoint, int index) {
+    FabrikSolve::joints.at(index) = newJoint;
+}
+
