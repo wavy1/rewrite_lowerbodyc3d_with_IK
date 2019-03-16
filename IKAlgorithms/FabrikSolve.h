@@ -21,11 +21,14 @@ public:
     void setOrigin(const Eigen::Vector3f &origin);
     void chain_backwards();
     void chain_forwards();
+    void calcConeDirection(Eigen::Vector3f joint, Eigen::Vector3f target);
 
 private:
     std::vector<Eigen::Vector3f> joints;
     Eigen::Vector3f target;
     Eigen::Vector3f origin;
+    Eigen::Vector3f rightvec;
+    Eigen::Vector3f upvec;
     float totalLength;
     std::vector<float> distances;
     float tolerance;

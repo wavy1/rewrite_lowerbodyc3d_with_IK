@@ -356,6 +356,9 @@ btk::Acquisition::Pointer writeOneChain(btk::Acquisition::Pointer acq) {
     FabrikSolve fabrikSolveLeft(getSecondsVector(jointsLeft), targetL.second, origin.second, sumOfAllLengthsLeft,
                                 getSecondsFloat(distancesLeft), tolerance);
 
+    fabrikSolveRight.calcConeDirection(fabrikSolveRight.getJoints().at(fabrikSolveRight.getJoints().size()-1), targetR.second);
+    fabrikSolveLeft.calcConeDirection(fabrikSolveLeft.getJoints().at(fabrikSolveLeft.getJoints().size()-1), targetL.second);
+
     // Loop through the Data
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 0; index < acq->GetPointFrameNumber(); index++) {
