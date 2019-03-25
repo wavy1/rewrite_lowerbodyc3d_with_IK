@@ -79,8 +79,8 @@ void printPointsWithLabel(btk::Acquisition::Pointer acq, std::string labelStr) {
     }
 }
 
-Eigen::Vector3f pointAt(btk::Point::Pointer itP, int frameNumber) {
-    Eigen::Vector3f point(itP->GetValues().coeff(frameNumber, 0),
+Eigen::Vector3d pointAt(btk::Point::Pointer itP, int frameNumber) {
+    Eigen::Vector3d point(itP->GetValues().coeff(frameNumber, 0),
                           itP->GetValues().coeff(frameNumber, 1),
                           itP->GetValues().coeff(frameNumber, 2));
     return point;
@@ -103,16 +103,16 @@ std::vector<float> getSecondsFloat(std::vector<std::pair<std::string, float> > p
     return floats;
 }
 
-std::vector<Eigen::Vector3f> getSecondsVector(std::vector<std::pair<std::string, Eigen::Vector3f> > pairs) {
-    std::vector<Eigen::Vector3f> vectors;
+std::vector<Eigen::Vector3d> getSecondsVector(std::vector<std::pair<std::string, Eigen::Vector3d> > pairs) {
+    std::vector<Eigen::Vector3d> vectors;
     for (size_t index = 0; index < pairs.size(); ++index) {
         vectors.push_back(pairs.at(index).second);
     }
     return vectors;
 }
 
-std::vector<std::pair<std::string, Eigen::Vector3f> >
-setVectorInPair(std::vector<std::pair<std::string, Eigen::Vector3f> > pairs, std::vector<Eigen::Vector3f> vectors,
+std::vector<std::pair<std::string, Eigen::Vector3d> >
+setVectorInPair(std::vector<std::pair<std::string, Eigen::Vector3d> > pairs, std::vector<Eigen::Vector3d> vectors,
                 bool isZeroDoubleOrigin) {
     for (size_t index = 0; index < vectors.size(); ++index) {
         if (!(isZeroDoubleOrigin && index == 0))
@@ -123,13 +123,13 @@ setVectorInPair(std::vector<std::pair<std::string, Eigen::Vector3f> > pairs, std
 
 
 btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
-    std::vector<std::pair<std::string, Eigen::Vector3f> > jointsLeft;
-    std::vector<std::pair<std::string, Eigen::Vector3f> > jointsRight;
+    std::vector<std::pair<std::string, Eigen::Vector3d> > jointsLeft;
+    std::vector<std::pair<std::string, Eigen::Vector3d> > jointsRight;
     float tolerance = 0.00001f;
-    std::pair<std::string, Eigen::Vector3f> targetL;
-    std::pair<std::string, Eigen::Vector3f> originL;
-    std::pair<std::string, Eigen::Vector3f> targetR;
-    std::pair<std::string, Eigen::Vector3f> originR;
+    std::pair<std::string, Eigen::Vector3d> targetL;
+    std::pair<std::string, Eigen::Vector3d> originL;
+    std::pair<std::string, Eigen::Vector3d> targetR;
+    std::pair<std::string, Eigen::Vector3d> originR;
     std::vector<std::pair<std::string, float> > distancesLeft;
     std::vector<std::pair<std::string, float> > distancesRight;
     float sumOfAllLengthsLeft;
@@ -152,28 +152,28 @@ btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
     btk::Point::Pointer tipToePointR = btk::Point::New("Skeleton_002:RToeTip2", acq->GetPointFrameNumber());
 
 
-    Eigen::Vector3f waistR = pointAt(acq->GetPoint("Skeleton_002:WaistRFront"), 0);
-    Eigen::Vector3f kneeR = pointAt(acq->GetPoint("Skeleton_002:RKneeOut"), 0);
-    Eigen::Vector3f heelR = pointAt(acq->GetPoint("Skeleton_002:RHeel"), 0);
-    Eigen::Vector3f tipToeR = pointAt(acq->GetPoint("Skeleton_002:RToeTip"), 0);
+    Eigen::Vector3d waistR = pointAt(acq->GetPoint("Skeleton_002:WaistRFront"), 0);
+    Eigen::Vector3d kneeR = pointAt(acq->GetPoint("Skeleton_002:RKneeOut"), 0);
+    Eigen::Vector3d heelR = pointAt(acq->GetPoint("Skeleton_002:RHeel"), 0);
+    Eigen::Vector3d tipToeR = pointAt(acq->GetPoint("Skeleton_002:RToeTip"), 0);
 
-    Eigen::Vector3f waistL = pointAt(acq->GetPoint("Skeleton_002:WaistLFront"), 0);
-    Eigen::Vector3f kneeL = pointAt(acq->GetPoint("Skeleton_002:LKneeOut"), 0);
-    Eigen::Vector3f heelL = pointAt(acq->GetPoint("Skeleton_002:LHeel"), 0);
-    Eigen::Vector3f tipToeL = pointAt(acq->GetPoint("Skeleton_002:LToeTip"), 0);
+    Eigen::Vector3d waistL = pointAt(acq->GetPoint("Skeleton_002:WaistLFront"), 0);
+    Eigen::Vector3d kneeL = pointAt(acq->GetPoint("Skeleton_002:LKneeOut"), 0);
+    Eigen::Vector3d heelL = pointAt(acq->GetPoint("Skeleton_002:LHeel"), 0);
+    Eigen::Vector3d tipToeL = pointAt(acq->GetPoint("Skeleton_002:LToeTip"), 0);
 
-    jointsLeft.push_back(std::make_pair("L1", Eigen::Vector3f(waistL.coeff(0), waistL.coeff(1), waistL.coeff(2))));
-    jointsLeft.push_back(std::make_pair("L2", Eigen::Vector3f(kneeL.coeff(0), kneeL.coeff(1), kneeL.coeff(2))));
-    jointsLeft.push_back(std::make_pair("L3", Eigen::Vector3f(heelL.coeff(0), heelL.coeff(1), heelL.coeff(2))));
+    jointsLeft.push_back(std::make_pair("L1", Eigen::Vector3d(waistL.coeff(0), waistL.coeff(1), waistL.coeff(2))));
+    jointsLeft.push_back(std::make_pair("L2", Eigen::Vector3d(kneeL.coeff(0), kneeL.coeff(1), kneeL.coeff(2))));
+    jointsLeft.push_back(std::make_pair("L3", Eigen::Vector3d(heelL.coeff(0), heelL.coeff(1), heelL.coeff(2))));
 
-    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3f(waistR.coeff(0), waistR.coeff(1), waistR.coeff(2))));
-    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3f(kneeR.coeff(0), kneeR.coeff(1), kneeR.coeff(2))));
-    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3f(heelR.coeff(0), heelR.coeff(1), heelR.coeff(2))));
+    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3d(waistR.coeff(0), waistR.coeff(1), waistR.coeff(2))));
+    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3d(kneeR.coeff(0), kneeR.coeff(1), kneeR.coeff(2))));
+    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3d(heelR.coeff(0), heelR.coeff(1), heelR.coeff(2))));
 
-    originR = std::make_pair("OR", Eigen::Vector3f(waistR.coeff(0), waistR.coeff(1), waistR.coeff(2)));
-    originL = std::make_pair("OL", Eigen::Vector3f(waistL.coeff(0), waistL.coeff(1), waistL.coeff(2)));
-    targetR = std::make_pair("TR", Eigen::Vector3f(tipToeR.coeff(0), tipToeR.coeff(1), tipToeR.coeff(2)));
-    targetL = std::make_pair("TL", Eigen::Vector3f(tipToeL.coeff(0), tipToeL.coeff(1), tipToeL.coeff(2)));
+    originR = std::make_pair("OR", Eigen::Vector3d(waistR.coeff(0), waistR.coeff(1), waistR.coeff(2)));
+    originL = std::make_pair("OL", Eigen::Vector3d(waistL.coeff(0), waistL.coeff(1), waistL.coeff(2)));
+    targetR = std::make_pair("TR", Eigen::Vector3d(tipToeR.coeff(0), tipToeR.coeff(1), tipToeR.coeff(2)));
+    targetL = std::make_pair("TL", Eigen::Vector3d(tipToeL.coeff(0), tipToeL.coeff(1), tipToeL.coeff(2)));
 
     for (size_t index = 0; index < jointsRight.size(); ++index) {
         if (index + 1 < jointsRight.size()) {
@@ -255,12 +255,12 @@ btk::Acquisition::Pointer writeIk(btk::Acquisition::Pointer acq) {
 
 
 btk::Acquisition::Pointer writeOneChain(btk::Acquisition::Pointer acq) {
-    std::vector<std::pair<std::string, Eigen::Vector3f> > jointsLeft;
-    std::vector<std::pair<std::string, Eigen::Vector3f> > jointsRight;
+    std::vector<std::pair<std::string, Eigen::Vector3d> > jointsLeft;
+    std::vector<std::pair<std::string, Eigen::Vector3d> > jointsRight;
     float tolerance = 0.001f;
-    std::pair<std::string, Eigen::Vector3f> targetL;
-    std::pair<std::string, Eigen::Vector3f> origin;
-    std::pair<std::string, Eigen::Vector3f> targetR;
+    std::pair<std::string, Eigen::Vector3d> targetL;
+    std::pair<std::string, Eigen::Vector3d> origin;
+    std::pair<std::string, Eigen::Vector3d> targetR;
     std::vector<std::pair<std::string, float> > distancesLeft;
     std::vector<std::pair<std::string, float> > distancesRight;
     float sumOfAllLengthsLeft;
@@ -286,39 +286,39 @@ btk::Acquisition::Pointer writeOneChain(btk::Acquisition::Pointer acq) {
     btk::Point::Pointer tipToePointR = btk::Point::New("Skeleton_002:RToeTip2", acq->GetPointFrameNumber());
 
     // Prepare Data writing Right Leg
-    Eigen::Vector3f waistR = pointAt(acq->GetPoint("Skeleton_002:WaistRFront"), 0);
-    Eigen::Vector3f kneeR = pointAt(acq->GetPoint("Skeleton_002:RKneeOut"), 0);
-    Eigen::Vector3f heelR = pointAt(acq->GetPoint("Skeleton_002:RHeel"), 0);
-    Eigen::Vector3f tipToeR = pointAt(acq->GetPoint("Skeleton_002:RToeTip"), 0);
+    Eigen::Vector3d waistR = pointAt(acq->GetPoint("Skeleton_002:WaistRFront"), 0);
+    Eigen::Vector3d kneeR = pointAt(acq->GetPoint("Skeleton_002:RKneeOut"), 0);
+    Eigen::Vector3d heelR = pointAt(acq->GetPoint("Skeleton_002:RHeel"), 0);
+    Eigen::Vector3d tipToeR = pointAt(acq->GetPoint("Skeleton_002:RToeTip"), 0);
 
-    Eigen::Vector3f waistMiddle = (pointAt(acq->GetPoint("Skeleton_002:WaistRFront"), 0) +
+    Eigen::Vector3d waistMiddle = (pointAt(acq->GetPoint("Skeleton_002:WaistRFront"), 0) +
                                    pointAt(acq->GetPoint("Skeleton_002:WaistLFront"), 0)) / 2;
 
     // Prepare Data writing Left Leg
-    Eigen::Vector3f waistL = pointAt(acq->GetPoint("Skeleton_002:WaistLFront"), 0);
-    Eigen::Vector3f kneeL = pointAt(acq->GetPoint("Skeleton_002:LKneeOut"), 0);
-    Eigen::Vector3f heelL = pointAt(acq->GetPoint("Skeleton_002:LHeel"), 0);
-    Eigen::Vector3f tipToeL = pointAt(acq->GetPoint("Skeleton_002:LToeTip"), 0);
+    Eigen::Vector3d waistL = pointAt(acq->GetPoint("Skeleton_002:WaistLFront"), 0);
+    Eigen::Vector3d kneeL = pointAt(acq->GetPoint("Skeleton_002:LKneeOut"), 0);
+    Eigen::Vector3d heelL = pointAt(acq->GetPoint("Skeleton_002:LHeel"), 0);
+    Eigen::Vector3d tipToeL = pointAt(acq->GetPoint("Skeleton_002:LToeTip"), 0);
 
     // Fill joint Data into Debuggable Vector Pair container
     jointsLeft.push_back(
-            std::make_pair("0", Eigen::Vector3f(waistMiddle.coeff(0), waistMiddle.coeff(1), waistMiddle.coeff(2))));
-    jointsLeft.push_back(std::make_pair("L1", Eigen::Vector3f(waistL.coeff(0), waistL.coeff(1), waistL.coeff(2))));
-    jointsLeft.push_back(std::make_pair("L2", Eigen::Vector3f(kneeL.coeff(0), kneeL.coeff(1), kneeL.coeff(2))));
-    jointsLeft.push_back(std::make_pair("L3", Eigen::Vector3f(heelL.coeff(0), heelL.coeff(1), heelL.coeff(2))));
-    jointsLeft.push_back(std::make_pair("L4", Eigen::Vector3f(tipToeL.coeff(0), tipToeL.coeff(1), tipToeL.coeff(2))));
+            std::make_pair("0", Eigen::Vector3d(waistMiddle.coeff(0), waistMiddle.coeff(1), waistMiddle.coeff(2))));
+    jointsLeft.push_back(std::make_pair("L1", Eigen::Vector3d(waistL.coeff(0), waistL.coeff(1), waistL.coeff(2))));
+    jointsLeft.push_back(std::make_pair("L2", Eigen::Vector3d(kneeL.coeff(0), kneeL.coeff(1), kneeL.coeff(2))));
+    jointsLeft.push_back(std::make_pair("L3", Eigen::Vector3d(heelL.coeff(0), heelL.coeff(1), heelL.coeff(2))));
+    jointsLeft.push_back(std::make_pair("L4", Eigen::Vector3d(tipToeL.coeff(0), tipToeL.coeff(1), tipToeL.coeff(2))));
 
     jointsRight.push_back(
-            std::make_pair("0", Eigen::Vector3f(waistMiddle.coeff(0), waistMiddle.coeff(1), waistMiddle.coeff(2))));
-    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3f(waistR.coeff(0), waistR.coeff(1), waistR.coeff(2))));
-    jointsRight.push_back(std::make_pair("R2", Eigen::Vector3f(kneeR.coeff(0), kneeR.coeff(1), kneeR.coeff(2))));
-    jointsRight.push_back(std::make_pair("R3", Eigen::Vector3f(heelR.coeff(0), heelR.coeff(1), heelR.coeff(2))));
-    jointsRight.push_back(std::make_pair("R4", Eigen::Vector3f(tipToeR.coeff(0), tipToeR.coeff(1), tipToeR.coeff(2))));
+            std::make_pair("0", Eigen::Vector3d(waistMiddle.coeff(0), waistMiddle.coeff(1), waistMiddle.coeff(2))));
+    jointsRight.push_back(std::make_pair("R1", Eigen::Vector3d(waistR.coeff(0), waistR.coeff(1), waistR.coeff(2))));
+    jointsRight.push_back(std::make_pair("R2", Eigen::Vector3d(kneeR.coeff(0), kneeR.coeff(1), kneeR.coeff(2))));
+    jointsRight.push_back(std::make_pair("R3", Eigen::Vector3d(heelR.coeff(0), heelR.coeff(1), heelR.coeff(2))));
+    jointsRight.push_back(std::make_pair("R4", Eigen::Vector3d(tipToeR.coeff(0), tipToeR.coeff(1), tipToeR.coeff(2))));
 
     // Set Debuggable Target and Origin
-    origin = std::make_pair("O", Eigen::Vector3f(waistMiddle.coeff(0), waistMiddle.coeff(1), waistMiddle.coeff(2)));
-    targetR = std::make_pair("TR", Eigen::Vector3f(tipToeR.coeff(0), tipToeR.coeff(1), tipToeR.coeff(2)));
-    targetL = std::make_pair("TL", Eigen::Vector3f(tipToeL.coeff(0), tipToeL.coeff(1), tipToeL.coeff(2)));
+    origin = std::make_pair("O", Eigen::Vector3d(waistMiddle.coeff(0), waistMiddle.coeff(1), waistMiddle.coeff(2)));
+    targetR = std::make_pair("TR", Eigen::Vector3d(tipToeR.coeff(0), tipToeR.coeff(1), tipToeR.coeff(2)));
+    targetL = std::make_pair("TL", Eigen::Vector3d(tipToeL.coeff(0), tipToeL.coeff(1), tipToeL.coeff(2)));
 
     // Calculate Distances of right leg and Debug
     for (size_t index = 0; index < jointsRight.size(); ++index) {
@@ -355,9 +355,6 @@ btk::Acquisition::Pointer writeOneChain(btk::Acquisition::Pointer acq) {
                                  getSecondsFloat(distancesRight), tolerance);
     FabrikSolve fabrikSolveLeft(getSecondsVector(jointsLeft), targetL.second, origin.second, sumOfAllLengthsLeft,
                                 getSecondsFloat(distancesLeft), tolerance);
-
-    fabrikSolveRight.calcConeDirection(fabrikSolveRight.getJoints().at(fabrikSolveRight.getJoints().size()-1), targetR.second);
-    fabrikSolveLeft.calcConeDirection(fabrikSolveLeft.getJoints().at(fabrikSolveLeft.getJoints().size()-1), targetL.second);
 
     // Loop through the Data
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
