@@ -141,7 +141,7 @@ std::pair<std::vector<std::pair<std::string, float> >, float> calculateDistances
 
 std::pair<std::vector<float>, float> calculateDistancesDebugless(std::vector<Eigen::Vector3d> joints) {
 
-    std::vector< float > distances;
+    std::vector<float> distances;
     float sumOfAllLenghts;
 
     for (size_t index = 0; index < joints.size(); ++index) {
@@ -151,6 +151,46 @@ std::pair<std::vector<float>, float> calculateDistancesDebugless(std::vector<Eig
         }
     }
     return std::make_pair(distances, sumOfAllLenghts);
+}
+
+std::map<int, std::string> pickFromAcq(btk::Acquisition::Pointer acq) {
+    std::map<int, std::string> pointStrs;
+    std::vector<int> choices;
+
+    int index = 0;
+    for (btk::Acquisition::PointIterator peter = acq->BeginPoint(); peter != acq->EndPoint(); ++peter) {
+        std::cout << "[" << index << "] " << "(Point: " << peter->get()->GetLabel() << "Type: "
+                  << peter->get()->GetType() << ")" << std::endl;
+        index++;
+    }
+
+    int choice = 0;
+    std::cout << "Pick Points by Number to build chain (pick -1 to complete your choice, repetitions not possible)"
+              << std::endl;
+
+    while (true) {
+        std::cout << "> " ;
+        std::cin >> choice;
+        if(choice == -1) break;
+        std::cout << "Added " << choice << " to the memory" << std::endl;
+        choices.push_back(choice);
+    }
+
+    index = 0;
+
+    for (btk::Acquisition::PointIterator peter = acq->BeginPoint(); peter != acq->EndPoint(); ++peter) {
+
+        for (std::vector<int>::iterator intChoiceIt = choices.begin(); intChoiceIt != choices.end(); ++intChoiceIt) {
+            if (*intChoiceIt == index) {
+                std::cout << "Added " << *intChoiceIt << " to " << peter->get()->GetLabel() <<" to the map" << std::endl;
+                pointStrs.insert(std::make_pair(*intChoiceIt, peter->get()->GetLabel()));
+            }
+        }
+
+        index++;
+    }
+
+    return pointStrs;
 }
 
 
@@ -171,6 +211,8 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
     int constrRight = 89;
     int constrUp = 89;
     int constrDown = 89;
+
+    std::map<int, std::string> pointStrs = pickFromAcq(acq);
 
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
     btk::Point::Pointer waistPointL = btk::Point::New("Skeleton_002:WaistLFront2", acq->GetPointFrameNumber());
@@ -200,8 +242,8 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
     originR = std::make_pair("OR", acqPointReadAdapterRight.pointAt("Skeleton_002:WaistRFront", 0));
     originL = std::make_pair("OL", acqPointReadAdapterLeft.pointAt("Skeleton_002:WaistLFront", 0));
 
-    targetR = std::make_pair("TR", acqPointReadAdapterRight.pointAt("Skeleton_002:RToeTip", 0));
-    targetL = std::make_pair("TL", acqPointReadAdapterLeft.pointAt("Skeleton_002:LToeTip", 0));
+    targetR = std::make_pair("TR", acqPointReadAdapterRight.pointAt("Skeleton_002:RToeTip", 1));
+    targetL = std::make_pair("TL", acqPointReadAdapterLeft.pointAt("Skeleton_002:LToeTip", 1));
 
     std::vector<Eigen::Vector3d> jointsRight = acqPointReadAdapterRight.getPositionsPerFrame(0);
     std::vector<Eigen::Vector3d> jointsLeft = acqPointReadAdapterLeft.getPositionsPerFrame(0);
@@ -213,7 +255,6 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
 
     distancesRight = distancesRightPair.first;
     sumOfAllLengthsRight = distancesRightPair.second;
-
 
     std::pair<std::vector<float>, float> distancesLeftPair = calculateDistancesDebugless(jointsLeft);
     distancesLeft = distancesLeftPair.first;
