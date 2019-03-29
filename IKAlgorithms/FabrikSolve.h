@@ -12,7 +12,7 @@
 class FabrikSolve {
 public:
     FabrikSolve(std::vector<Eigen::Vector3d> joints, Eigen::Vector3d target, Eigen::Vector3d origin,
-                float totalLength, std::vector<float> distances, float tolerance);
+                float totalLength, std::vector<float> distances, float tolerance, bool isConstrained);
 
     virtual ~FabrikSolve();
 
@@ -29,6 +29,7 @@ public:
     void chain_backwards();
 
     void chain_forwards();
+    void setAllConeConstraints(const float right, const float left, const float up, const float down);
 
     Eigen::Vector3d
     chain_constrain(Eigen::Vector3d calc, Eigen::Vector3d line, Eigen::Matrix4d direction);

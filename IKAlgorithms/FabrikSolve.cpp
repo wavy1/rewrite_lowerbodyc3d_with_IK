@@ -34,7 +34,7 @@ void FabrikSolve::chain_backwards() {
         position = (1 - l) * joints.at(index + 1) + l * joints.at(index);
         std::cout << "Position: [" << position.coeff(0) << ", " << position.coeff(1) << ", " << position.coeff(2) << "]"
                   << std::endl;
-        std::cout << "Index: " << index << std::endl;
+        std::cout << "IndexAtAlgorithm: " << index << std::endl;
         joints.at(index) = position;
     }
 }
@@ -67,7 +67,6 @@ void FabrikSolve::chain_forwards() {
         std::cout << "r: " << r << std::endl;
         l = distances.at(index) / r;
         std::cout << "l: " << l << std::endl;
-
 
         Eigen::Vector3d lookAt = joints.at(index) + coneVec;
         Eigen::Vector3d coneOrigin = joints.at(index);
@@ -114,6 +113,7 @@ void FabrikSolve::solve() {
     float dif;
     int bcount;
     std::cout << "Distance: " << distance << " vs. total Lenght: " << totalLength << std::endl;
+    std::cout << "Joint Number: " << distances.size() << std::endl;
     if (distance > totalLength) {
         for (size_t index = 0; index < joints.size(); ++index) {
             r = (target - joints.at(index)).norm();
@@ -145,24 +145,6 @@ void FabrikSolve::solve() {
     std::cout << std::endl;
 }
 
-FabrikSolve::FabrikSolve(std::vector<Eigen::Vector3d> joints, Eigen::Vector3d target,
-                         Eigen::Vector3d origin, float totalLength, std::vector<float> distances,
-                         float tolerance) {
-    this->joints = joints;
-    this->target = target;
-    this->origin = origin;
-    this->distances = distances;
-    this->tolerance = tolerance;
-    this->totalLength = totalLength;
-    this->right = degToRad(3);
-    this->left = degToRad(3);
-    this->up = degToRad(3);
-    this->down = degToRad(3);
-    this->isConstrained = true;
-
-    std::cout << "Constructor is executed\n" << std::endl;
-}
-
 FabrikSolve::~FabrikSolve() {
     std::cout << "Destructor is executed\n" << std::endl;
 }
@@ -185,6 +167,7 @@ void FabrikSolve::setJointAt(Eigen::Vector3d newJoint, int index) {
 
 Eigen::Vector3d
 FabrikSolve::chain_constrain(Eigen::Vector3d calc, Eigen::Vector3d line, Eigen::Matrix4d direction) {
+    std::cout << "Constrain"<< std::endl;
     float scalar = calc.dot(line) / line.norm();
     Eigen::Vector3d proj = scalar * line.normalized();
 
@@ -208,7 +191,7 @@ FabrikSolve::chain_constrain(Eigen::Vector3d calc, Eigen::Vector3d line, Eigen::
     Eigen::Vector3d f = calc;
 
     float ellipse = std::sqrt(xaspect)/std::sqrt(xbound) + std::sqrt(yaspect)/std::sqrt(ybound);
-    float inbounds = ellipse <= 1 and scalar >= 0;
+    bool inbounds = ellipse <= 1 && scalar >= 0;
 
     if(! inbounds ){
         float a = std::atan2(yaspect, xaspect);
@@ -252,5 +235,29 @@ void FabrikSolve::calcConeDirection(Eigen::Vector3d calc, Eigen::Matrix4d cf) {
         std::cout << "Fuck Deadlock" << std::endl;
     }
     std::cout << "x: " << rightvec.coeff(0) << " y: " << rightvec.coeff(1) << " z: " << rightvec.coeff(2) << std::endl;
+}
+
+void FabrikSolve::setAllConeConstraints(const float right, const float left, const float up, const float down) {
+    this->right = degToRad(right);
+    this->left = degToRad(left);
+    this->up = degToRad(up);
+    this->down = degToRad(down);
+}
+
+FabrikSolve::FabrikSolve(std::vector<Eigen::Vector3d> joints, Eigen::Vector3d target, Eigen::Vector3d origin,
+                         float totalLength, std::vector<float> distances, float tolerance, bool isConstrained) {
+    this->joints = joints;
+    this->target = target;
+    this->origin = origin;
+    this->distances = distances;
+    this->tolerance = tolerance;
+    this->totalLength = totalLength;
+    this->right = degToRad(89);
+    this->left = degToRad(89);
+    this->up = degToRad(89);
+    this->down = degToRad(89);
+    this->isConstrained = isConstrained;
+
+    std::cout << "Constructor is executed\n" << std::endl;
 }
 
