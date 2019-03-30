@@ -8,7 +8,7 @@
 #include <typeinfo>
 #include <cmath>
 #include "FabrikSolve.h"
-#include "AcqPointReadAdapter.h"
+#include "AcquisitionChain.h"
 
 btk::Acquisition::Pointer readAcquisition(const std::string &filename) {
     btk::AcquisitionFileReader::Pointer reader = btk::AcquisitionFileReader::New();
@@ -97,23 +97,6 @@ std::vector<float> getSecondsFloat(std::vector<std::pair<std::string, float> > p
     return floats;
 }
 
-std::vector<Eigen::Vector3d> getSecondsVector(std::vector<std::pair<std::string, Eigen::Vector3d> > pairs) {
-    std::vector<Eigen::Vector3d> vectors;
-    for (size_t index = 0; index < pairs.size(); ++index) {
-        vectors.push_back(pairs.at(index).second);
-    }
-    return vectors;
-}
-
-std::vector<std::pair<std::string, Eigen::Vector3d> >
-setVectorInPair(std::vector<std::pair<std::string, Eigen::Vector3d> > pairs, std::vector<Eigen::Vector3d> vectors,
-                bool isZeroDoubleOrigin) {
-    for (size_t index = 0; index < vectors.size(); ++index) {
-        if (!(isZeroDoubleOrigin && index == 0))
-            pairs.at(index) = std::make_pair(pairs.at(index).first, vectors.at(index));
-    }
-    return pairs;
-}
 
 std::pair<std::vector<std::pair<std::string, float> >, float> calculateDistances(std::vector<Eigen::Vector3d> joints,
                                                                                  std::vector<std::pair<std::string, Eigen::Vector3d> > debugVectors) {
@@ -135,20 +118,6 @@ std::pair<std::vector<std::pair<std::string, float> >, float> calculateDistances
                   << joints.at(index).coeff(1) << ","
                   << joints.at(index).coeff(2) << "]"
                   << std::endl;
-    }
-    return std::make_pair(distances, sumOfAllLenghts);
-}
-
-std::pair<std::vector<float>, float> calculateDistancesDebugless(std::vector<Eigen::Vector3d> joints) {
-
-    std::vector<float> distances;
-    float sumOfAllLenghts;
-
-    for (size_t index = 0; index < joints.size(); ++index) {
-        if (index + 1 < joints.size()) {
-            distances.push_back((joints.at(index + 1) - joints.at(index)).norm());
-            sumOfAllLenghts += (joints.at(index + 1) - joints.at(index)).norm();
-        }
     }
     return std::make_pair(distances, sumOfAllLenghts);
 }
@@ -218,98 +187,72 @@ std::map<int, std::string> testDataFromAcq(btk::Acquisition::Pointer acq, std::v
 
 
 btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
-    AcqPointReadAdapter acqPointReadAdapterRight;
-    AcqPointReadAdapter acqPointReadAdapterLeft;
+    AcquisitionChain rightChain;
+    AcquisitionChain leftChain;
     float tolerance = 0.00001f;
-    std::pair<std::string, Eigen::Vector3d> targetL;
-    std::pair<std::string, Eigen::Vector3d> originL;
-    std::pair<std::string, Eigen::Vector3d> targetR;
-    std::pair<std::string, Eigen::Vector3d> originR;
-    std::vector<float> distancesLeft;
-    std::vector<float> distancesRight;
-    float sumOfAllLengthsLeft;
-    float sumOfAllLengthsRight;
-    bool constrained = false;
-    int constrLeft = 89;
-    int constrRight = 89;
-    int constrUp = 89;
-    int constrDown = 89;
-    std::vector<int> testDataLeft;
-    testDataLeft.push_back(0);
-    testDataLeft.push_back(4);
-    testDataLeft.push_back(10);
-    testDataLeft.push_back(11);
+    int arrLeft[4] = {0,4,10,11};
+    std::vector<int> testDataLeftChoice(arrLeft, arrLeft + 4);
+    int arrRight[4] = {1, 12, 18, 19};
+    std::vector<int> testDataRightChoice(arrRight, arrRight + 4);
 
-    std::vector<int> testDataRight;
-    testDataRight.push_back(1);
-    testDataRight.push_back(12);
-    testDataRight.push_back(18);
-    testDataRight.push_back(19);
-
-
-    std::map<int, std::string> pointStrsLeft = testDataFromAcq(acq, testDataLeft);
-    std::map<int, std::string> pointStrsRight = testDataFromAcq(acq, testDataRight);
+    std::map<int, std::string> pointIdToLabelLeft = testDataFromAcq(acq, testDataLeftChoice);
+    std::map<int, std::string> pointIdToLabelRight = testDataFromAcq(acq, testDataRightChoice);
 
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
     std::vector<btk::Point::Pointer> leftOutputPoints;
     std::vector<btk::Point::Pointer> rightOutputPoints;
     char index = 0;
 
-    for (std::map<int, std::string>::iterator mapLeftIt = pointStrsLeft.begin();
-         mapLeftIt != pointStrsLeft.end(); ++mapLeftIt) {
-        leftOutputPoints.push_back(btk::Point::New(mapLeftIt->second + "fabrik", acq->GetPointFrameNumber()));
-        acqPointReadAdapterLeft.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
+    for (std::map<int, std::string>::iterator mapLeftIt = pointIdToLabelLeft.begin();
+         mapLeftIt != pointIdToLabelLeft.end(); ++mapLeftIt) {
+        leftOutputPoints.push_back(btk::Point::New(mapLeftIt->second + "Fabrik", acq->GetPointFrameNumber()));
+        leftChain.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
         index++;
     }
-    originL = std::make_pair("OL", acqPointReadAdapterLeft.pointAt(pointStrsLeft.begin()->second, 0));
-    targetL = std::make_pair("TL", acqPointReadAdapterLeft.pointAt(pointStrsLeft.rbegin()->second, 1));
-    std::vector<Eigen::Vector3d> jointsLeft = acqPointReadAdapterLeft.getPositionsPerFrame(0);
+    std::vector<Eigen::Vector3d> jointsLeft = leftChain.getPositionsPerFrame(0);
     jointsLeft.resize(3);
-    std::pair<std::vector<float>, float> distancesLeftPair = calculateDistancesDebugless(jointsLeft);
-    distancesLeft = distancesLeftPair.first;
-    sumOfAllLengthsLeft = distancesLeftPair.second;
+    leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
 
     index = 0;
-    for (std::map<int, std::string>::iterator mapRightIt = pointStrsRight.begin();
-         mapRightIt != pointStrsRight.end(); ++mapRightIt) {
+    for (std::map<int, std::string>::iterator mapRightIt = pointIdToLabelRight.begin();
+         mapRightIt != pointIdToLabelRight.end(); ++mapRightIt) {
         rightOutputPoints.push_back(btk::Point::New(mapRightIt->second + "Fabrik", acq->GetPointFrameNumber()));
-        acqPointReadAdapterRight.addToMap(mapRightIt->second, acq->GetPoint(mapRightIt->second), true, "R" + index);
+        rightChain.addToMap(mapRightIt->second, acq->GetPoint(mapRightIt->second), true, "R" + index);
         index++;
     }
-    originR = std::make_pair("OR", acqPointReadAdapterRight.pointAt(pointStrsRight.begin()->second, 0));
-    targetR = std::make_pair("TR", acqPointReadAdapterRight.pointAt(pointStrsRight.rbegin()->second, 1));
-    std::vector<Eigen::Vector3d> jointsRight = acqPointReadAdapterRight.getPositionsPerFrame(0);
+    std::vector<Eigen::Vector3d> jointsRight = rightChain.getPositionsPerFrame(0);
     jointsRight.resize(3);
-    std::pair<std::vector<float>, float> distancesRightPair = calculateDistancesDebugless(jointsRight);
-    distancesRight = distancesRightPair.first;
-    sumOfAllLengthsRight = distancesRightPair.second;
+    rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
 
 
-    FabrikSolve fabrikSolveRight(jointsRight, targetR.second,
-                                 originR.second,
-                                 sumOfAllLengthsRight,
-                                 distancesRight, tolerance, false);
-    FabrikSolve fabrikSolveLeft(jointsLeft, targetL.second, originL.second, sumOfAllLengthsLeft,
-                                distancesLeft, tolerance, false);
+    FabrikSolve fabrikSolveRight(jointsRight, rightChain.pointAt(pointIdToLabelRight.rbegin()->second, 1),
+                                 rightChain.pointAt(pointIdToLabelRight.begin()->second, 0),
+                                 rightChain.getSetSumOfAllLenghts(),
+                                 rightChain.getDistances(), tolerance, false);
+    FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
+                                leftChain.pointAt(pointIdToLabelLeft.begin()->second, 0), leftChain.getSetSumOfAllLenghts(),
+                                leftChain.getDistances(), tolerance, false);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
 
-        fabrikSolveRight.setTarget(acqPointReadAdapterRight.pointAt("Skeleton_002:RToeTip", index));
+        fabrikSolveRight.setTarget(rightChain.pointAt(pointIdToLabelRight.rbegin()->second, index));
         fabrikSolveRight.solve();
         jointsRight = fabrikSolveRight.getJoints();
 
-        fabrikSolveLeft.setTarget(acqPointReadAdapterLeft.pointAt("Skeleton_002:LToeTip", index));
+        fabrikSolveLeft.setTarget(leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, index));
         fabrikSolveLeft.solve();
         jointsLeft = fabrikSolveLeft.getJoints();
 
         size_t j = 0;
-        std::map<int, std::string>::iterator pointToStringsLeft = pointStrsLeft.begin();
-        std::map<int, std::string>::iterator pointToStringsRight = pointStrsRight.begin();
-        while(j < jointsLeft.size()){
-            leftOutputPoints.at(j).get()->SetDataSlice(index, jointsLeft.at(j).coeff(0), jointsLeft.at(j).coeff(1), jointsLeft.at(j).coeff(2));
-            rightOutputPoints.at(j).get()->SetDataSlice(index, jointsRight.at(j).coeff(0), jointsRight.at(j).coeff(1), jointsRight.at(j).coeff(2));
+        std::map<int, std::string>::iterator pointToStringsLeft = pointIdToLabelLeft.begin();
+        std::map<int, std::string>::iterator pointToStringsRight = pointIdToLabelRight.begin();
+        while (j < jointsLeft.size()) {
+            leftOutputPoints.at(j).get()->SetDataSlice(index, jointsLeft.at(j).coeff(0), jointsLeft.at(j).coeff(1),
+                                                       jointsLeft.at(j).coeff(2));
+            rightOutputPoints.at(j).get()->SetDataSlice(index, jointsRight.at(j).coeff(0), jointsRight.at(j).coeff(1),
+                                                        jointsRight.at(j).coeff(2));
             printAcquisition->SetPoint(pointToStringsRight->first, rightOutputPoints.at(j));
             printAcquisition->SetPoint(pointToStringsLeft->first, leftOutputPoints.at(j));
             ++j;
@@ -321,116 +264,81 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
 }
 
 btk::Acquisition::Pointer writeIkConstrained(btk::Acquisition::Pointer acq) {
-    AcqPointReadAdapter acqPointReadAdapterRight;
-    AcqPointReadAdapter acqPointReadAdapterLeft;
+    AcquisitionChain rightChain;
+    AcquisitionChain leftChain;
     float tolerance = 0.00001f;
-    std::pair<std::string, Eigen::Vector3d> targetL;
-    std::pair<std::string, Eigen::Vector3d> originL;
-    std::pair<std::string, Eigen::Vector3d> targetR;
-    std::pair<std::string, Eigen::Vector3d> originR;
-    std::vector<std::pair<std::string, float> > distancesLeft;
-    std::vector<std::pair<std::string, float> > distancesRight;
-    float sumOfAllLengthsLeft;
-    float sumOfAllLengthsRight;
-    bool constrained = true;
-    int constrLeft = 89;
-    int constrRight = 89;
-    int constrUp = 89;
-    int constrDown = 89;
+    int arrLeft[4] = {0,4,10,11};
+    std::vector<int> testDataLeftChoice(arrLeft, arrLeft + 4);
+    int arrRight[4] = {1, 12, 18, 19};
+    std::vector<int> testDataRightChoice(arrRight, arrRight + 4);
+
+    std::map<int, std::string> pointIdToLabelLeft = testDataFromAcq(acq, testDataLeftChoice);
+    std::map<int, std::string> pointIdToLabelRight = testDataFromAcq(acq, testDataRightChoice);
 
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
-    btk::Point::Pointer waistPointL = btk::Point::New("Skeleton_002:WaistLFront2", acq->GetPointFrameNumber());
-    btk::Point::Pointer kneePointL = btk::Point::New("Skeleton_002:LKneeOut2", acq->GetPointFrameNumber());
-    btk::Point::Pointer heelPointL = btk::Point::New("Skeleton_002:LHeel2", acq->GetPointFrameNumber());
-    btk::Point::Pointer tipToePointL = btk::Point::New("Skeleton_002:LToeTip2", acq->GetPointFrameNumber());
+    std::vector<btk::Point::Pointer> leftOutputPoints;
+    std::vector<btk::Point::Pointer> rightOutputPoints;
+    char index = 0;
+
+    for (std::map<int, std::string>::iterator mapLeftIt = pointIdToLabelLeft.begin();
+         mapLeftIt != pointIdToLabelLeft.end(); ++mapLeftIt) {
+        leftOutputPoints.push_back(btk::Point::New(mapLeftIt->second + "Fabrik", acq->GetPointFrameNumber()));
+        leftChain.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
+        index++;
+    }
+    std::vector<Eigen::Vector3d> jointsLeft = leftChain.getPositionsPerFrame(0);
+    jointsLeft.resize(3);
+    leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
+
+    index = 0;
+    for (std::map<int, std::string>::iterator mapRightIt = pointIdToLabelRight.begin();
+         mapRightIt != pointIdToLabelRight.end(); ++mapRightIt) {
+        rightOutputPoints.push_back(btk::Point::New(mapRightIt->second + "Fabrik", acq->GetPointFrameNumber()));
+        rightChain.addToMap(mapRightIt->second, acq->GetPoint(mapRightIt->second), true, "R" + index);
+        index++;
+    }
+    std::vector<Eigen::Vector3d> jointsRight = rightChain.getPositionsPerFrame(0);
+    jointsRight.resize(3);
+    rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
 
 
-    btk::Point::Pointer waistPointR = btk::Point::New("Skeleton_002:WaistRFront2", acq->GetPointFrameNumber());
-    btk::Point::Pointer kneePointR = btk::Point::New("Skeleton_002:RKneeOut2", acq->GetPointFrameNumber());
-    btk::Point::Pointer heelPointR = btk::Point::New("Skeleton_002:RHeel2", acq->GetPointFrameNumber());
-    btk::Point::Pointer tipToePointR = btk::Point::New("Skeleton_002:RToeTip2", acq->GetPointFrameNumber());
-
-
-    acqPointReadAdapterRight.addToMap("Skeleton_002:WaistRFront", acq->GetPoint("Skeleton_002:WaistRFront"), true,
-                                      "R1");
-    acqPointReadAdapterRight.addToMap("Skeleton_002:RKneeOut", acq->GetPoint("Skeleton_002:RKneeOut"), true, "R2");
-    acqPointReadAdapterRight.addToMap("Skeleton_002:RHeel", acq->GetPoint("Skeleton_002:RHeel"), true, "R3");
-    acqPointReadAdapterRight.addToMap("Skeleton_002:RToeTip", acq->GetPoint("Skeleton_002:RToeTip"), true, "R4");
-
-    acqPointReadAdapterLeft.addToMap("Skeleton_002:WaistLFront", acq->GetPoint("Skeleton_002:WaistLFront"), true, "L1");
-    acqPointReadAdapterLeft.addToMap("Skeleton_002:LKneeOut", acq->GetPoint("Skeleton_002:LKneeOut"), true, "L2");
-    acqPointReadAdapterLeft.addToMap("Skeleton_002:LHeel", acq->GetPoint("Skeleton_002:LHeel"), true, "L3");
-    acqPointReadAdapterLeft.addToMap("Skeleton_002:LToeTip", acq->GetPoint("Skeleton_002:LToeTip"), true, "L4");
-
-
-    originR = std::make_pair("OR", acqPointReadAdapterRight.pointAt("Skeleton_002:WaistRFront", 0));
-    originL = std::make_pair("OL", acqPointReadAdapterLeft.pointAt("Skeleton_002:WaistLFront", 0));
-
-    targetR = std::make_pair("TR", acqPointReadAdapterRight.pointAt("Skeleton_002:RToeTip", 0));
-    targetL = std::make_pair("TL", acqPointReadAdapterLeft.pointAt("Skeleton_002:LToeTip", 0));
-
-    std::vector<Eigen::Vector3d> jointsRight = acqPointReadAdapterRight.getPositionsPerFrame(0);
-    std::vector<Eigen::Vector3d> jointsLeft = acqPointReadAdapterLeft.getPositionsPerFrame(0);
-
-    std::pair<std::vector<std::pair<std::string, float> >, float> distancesRightPair = calculateDistances(jointsRight,
-                                                                                                          acqPointReadAdapterRight.getDebuggablePairsVectorOfFrame(
-                                                                                                                  0));
-    distancesRight = distancesRightPair.first;
-    sumOfAllLengthsRight = distancesRightPair.second;
-
-    std::pair<std::vector<std::pair<std::string, float> >, float> distancesLeftPair = calculateDistances(jointsLeft,
-                                                                                                         acqPointReadAdapterLeft.getDebuggablePairsVectorOfFrame(
-                                                                                                                 0));
-    distancesLeft = distancesLeftPair.first;
-    sumOfAllLengthsLeft = distancesLeftPair.second;
-
-
-    FabrikSolve fabrikSolveRight(acqPointReadAdapterRight.getPositionsPerFrame(0), targetR.second, originR.second,
-                                 sumOfAllLengthsRight,
-                                 getSecondsFloat(distancesRight), tolerance, true);
-    FabrikSolve fabrikSolveLeft(acqPointReadAdapterLeft.getPositionsPerFrame(0), targetL.second, originL.second,
-                                sumOfAllLengthsLeft,
-                                getSecondsFloat(distancesLeft), tolerance, true);
-    fabrikSolveLeft.solve();
-    fabrikSolveRight.solve();
-
-    std::cout << "Sum: " << std::endl;
+    FabrikSolve fabrikSolveRight(jointsRight, rightChain.pointAt(pointIdToLabelRight.rbegin()->second, 1),
+                                 rightChain.pointAt(pointIdToLabelRight.begin()->second, 0),
+                                 rightChain.getSetSumOfAllLenghts(),
+                                 rightChain.getDistances(), tolerance, true);
+    fabrikSolveRight.setAllConeConstraints(0.1,0.1,0.1,0.1);
+    FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
+                                leftChain.pointAt(pointIdToLabelLeft.begin()->second, 0), leftChain.getSetSumOfAllLenghts(),
+                                leftChain.getDistances(), tolerance, true);
+    fabrikSolveLeft.setAllConeConstraints(0.1,0.1,0.1,0.1);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
-    for (size_t index = 0; index < acq->GetPointFrameNumber(); index++) {
+    for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
 
-        fabrikSolveRight.setTarget(acqPointReadAdapterRight.pointAt("Skeleton_002:RToeTip", index));
+        fabrikSolveRight.setTarget(rightChain.pointAt(pointIdToLabelRight.rbegin()->second, index));
         fabrikSolveRight.solve();
+        jointsRight = fabrikSolveRight.getJoints();
 
-
-        fabrikSolveLeft.setTarget(acqPointReadAdapterLeft.pointAt("Skeleton_002:LToeTip", index));
+        fabrikSolveLeft.setTarget(leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, index));
         fabrikSolveLeft.solve();
+        jointsLeft = fabrikSolveLeft.getJoints();
 
-
-        waistPointR->SetDataSlice(index, jointsRight.at(0).coeff(0), jointsRight.at(0).coeff(1),
-                                  jointsRight.at(0).coeff(2));
-        kneePointR->SetDataSlice(index, jointsRight.at(1).coeff(0), jointsRight.at(1).coeff(1),
-                                 jointsRight.at(1).coeff(2));
-        heelPointR->SetDataSlice(index, jointsRight.at(2).coeff(0), jointsRight.at(2).coeff(1),
-                                 jointsRight.at(2).coeff(2));
-
-        waistPointL->SetDataSlice(index, jointsLeft.at(0).coeff(0), jointsLeft.at(0).coeff(1),
-                                  jointsLeft.at(0).coeff(2));
-        kneePointL->SetDataSlice(index, jointsLeft.at(1).coeff(0), jointsLeft.at(1).coeff(1),
-                                 jointsLeft.at(1).coeff(2));
-        heelPointL->SetDataSlice(index, jointsLeft.at(2).coeff(0), jointsLeft.at(2).coeff(1),
-                                 jointsLeft.at(2).coeff(2));
-
-        printAcquisition->SetPoint(1, waistPointR);
-        printAcquisition->SetPoint(12, kneePointR);
-        printAcquisition->SetPoint(18, heelPointR);
-
-        printAcquisition->SetPoint(0, waistPointL);
-        printAcquisition->SetPoint(4, kneePointL);
-        printAcquisition->SetPoint(10, heelPointL);
+        size_t j = 0;
+        std::map<int, std::string>::iterator pointToStringsLeft = pointIdToLabelLeft.begin();
+        std::map<int, std::string>::iterator pointToStringsRight = pointIdToLabelRight.begin();
+        while (j < jointsLeft.size()) {
+            leftOutputPoints.at(j).get()->SetDataSlice(index, jointsLeft.at(j).coeff(0), jointsLeft.at(j).coeff(1),
+                                                       jointsLeft.at(j).coeff(2));
+            rightOutputPoints.at(j).get()->SetDataSlice(index, jointsRight.at(j).coeff(0), jointsRight.at(j).coeff(1),
+                                                        jointsRight.at(j).coeff(2));
+            printAcquisition->SetPoint(pointToStringsRight->first, rightOutputPoints.at(j));
+            printAcquisition->SetPoint(pointToStringsLeft->first, leftOutputPoints.at(j));
+            ++j;
+            ++pointToStringsLeft;
+            ++pointToStringsRight;
+        }
     }
-    return printAcquisition;
     return printAcquisition;
 }
 

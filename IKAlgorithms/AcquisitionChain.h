@@ -13,7 +13,7 @@
 #include <Eigen/Dense>
 #include <map>
 
-class AcqPointReadAdapter {
+class AcquisitionChain {
 public:
     Eigen::Vector3d pointAt(btk::Point::Pointer itP, int frameNumber);
     Eigen::Vector3d pointAt(std::string pointStr, int frameNumber);
@@ -21,8 +21,14 @@ public:
     std::vector<Eigen::Vector3d> getPositionsPerFrame(int frameNumber);
     std::vector<btk::Point::Pointer> getPoints();
     std::vector<std::pair<std::string, Eigen::Vector3d> > getDebuggablePairsVectorOfFrame(int frameNumber);
+    void calculateDistancesDebugless(std::vector<Eigen::Vector3d> joints);
+    float getSetSumOfAllLenghts();
+    std::vector<float> getDistances();
+
 
 private:
+    std::map<std::string, float> distances;
+    float sumOfAllLenghts;
     std::map<std::string, btk::Point::Pointer> stringToPointMap;
     std::map<std::string, std::pair<std::string, btk::Point::Pointer> > stringToPointMapDebuggable;
 };

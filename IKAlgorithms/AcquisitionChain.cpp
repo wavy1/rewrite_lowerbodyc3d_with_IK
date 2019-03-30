@@ -3,16 +3,16 @@
 //
 
 #include <vector>
-#include "AcqPointReadAdapter.h"
+#include "AcquisitionChain.h"
 
-Eigen::Vector3d AcqPointReadAdapter::pointAt(btk::Point::Pointer itP, int frameNumber) {
+Eigen::Vector3d AcquisitionChain::pointAt(btk::Point::Pointer itP, int frameNumber) {
     Eigen::Vector3d point(itP->GetValues().coeff(frameNumber, 0),
                           itP->GetValues().coeff(frameNumber, 1),
                           itP->GetValues().coeff(frameNumber, 2));
     return point;
 }
 
-Eigen::Vector3d AcqPointReadAdapter::pointAt(std::string pointStr, int frameNumber) {
+Eigen::Vector3d AcquisitionChain::pointAt(std::string pointStr, int frameNumber) {
 
     const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matrix = this->stringToPointMap[pointStr]->GetValues();
 
@@ -22,7 +22,7 @@ Eigen::Vector3d AcqPointReadAdapter::pointAt(std::string pointStr, int frameNumb
     return point;
 }
 
-void AcqPointReadAdapter::addToMap(std::string str, btk::Point::Pointer acqPoint, bool includeDebuggable,
+void AcquisitionChain::addToMap(std::string str, btk::Point::Pointer acqPoint, bool includeDebuggable,
                                    std::string debugStr) {
     this->stringToPointMap[str] = acqPoint;
 
@@ -31,7 +31,7 @@ void AcqPointReadAdapter::addToMap(std::string str, btk::Point::Pointer acqPoint
     }
 }
 
-std::vector<btk::Point::Pointer> AcqPointReadAdapter::getPoints() {
+std::vector<btk::Point::Pointer> AcquisitionChain::getPoints() {
     std::vector<btk::Point::Pointer> my_vals;
 
     for(std::map<std::string, btk::Point::Pointer>::iterator peter = stringToPointMap.begin(); peter != stringToPointMap.end(); ++peter){
@@ -46,7 +46,7 @@ std::vector<btk::Point::Pointer> AcqPointReadAdapter::getPoints() {
      */
 }
 
-std::vector<Eigen::Vector3d> AcqPointReadAdapter::getPositionsPerFrame(int frameNumber) {
+std::vector<Eigen::Vector3d> AcquisitionChain::getPositionsPerFrame(int frameNumber) {
     std::vector<Eigen::Vector3d> my_vals;
 
     for(std::map<std::string, btk::Point::Pointer>::iterator peter = stringToPointMap.begin(); peter != stringToPointMap.end(); ++peter){
@@ -63,7 +63,7 @@ std::vector<Eigen::Vector3d> AcqPointReadAdapter::getPositionsPerFrame(int frame
 }
 
 std::vector<std::pair<std::string, Eigen::Vector3d> >
-AcqPointReadAdapter::getDebuggablePairsVectorOfFrame(int frameNumber) {
+AcquisitionChain::getDebuggablePairsVectorOfFrame(int frameNumber) {
 
     std::vector<std::pair<std::string, Eigen::Vector3d> > my_map;
 
@@ -79,4 +79,29 @@ AcqPointReadAdapter::getDebuggablePairsVectorOfFrame(int frameNumber) {
             });
      */
     return my_map;
+}
+
+void AcquisitionChain::calculateDistancesDebugless(std::vector<Eigen::Vector3d> joints) {
+
+    this->sumOfAllLenghts = 0;
+
+    for (size_t index = 0; index < joints.size(); ++index) {
+        if (index + 1 < joints.size()) {
+            this->distances.insert(std::make_pair("P" + index, (joints.at(index + 1) - joints.at(index)).norm()));
+            this->sumOfAllLenghts += (joints.at(index + 1) - joints.at(index)).norm();
+        }
+    }
+}
+
+float AcquisitionChain::getSetSumOfAllLenghts() {
+    return this->sumOfAllLenghts;
+}
+
+std::vector<float> AcquisitionChain::getDistances() {
+    std::vector<float> distances;
+
+    for(std::map<std::string, float>::iterator distanceMapIt = this->distances.begin(); distanceMapIt != this->distances.end(); ++distanceMapIt){
+        distances.push_back(distanceMapIt->second);
+    }
+    return distances;
 }

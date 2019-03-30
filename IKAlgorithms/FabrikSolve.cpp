@@ -252,10 +252,6 @@ FabrikSolve::FabrikSolve(std::vector<Eigen::Vector3d> joints, Eigen::Vector3d ta
     this->distances = distances;
     this->tolerance = tolerance;
     this->totalLength = totalLength;
-    this->right = degToRad(89);
-    this->left = degToRad(89);
-    this->up = degToRad(89);
-    this->down = degToRad(89);
     this->isConstrained = isConstrained;
 
     std::cout << "Constructor is executed\n" << std::endl;
