@@ -190,18 +190,18 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
     float tolerance = 0.00001f;
-    int arrLeft[4] = {0,4,10,11};
-    std::vector<int> testDataLeftChoice(arrLeft, arrLeft + 4);
-    int arrRight[4] = {1, 12, 18, 19};
-    std::vector<int> testDataRightChoice(arrRight, arrRight + 4);
 
-    std::map<int, std::string> pointIdToLabelLeft = testDataFromAcq(acq, testDataLeftChoice);
-    std::map<int, std::string> pointIdToLabelRight = testDataFromAcq(acq, testDataRightChoice);
+
+    std::cout << "Choice left" << std::endl;
+    std::map<int, std::string> pointIdToLabelLeft = pickFromAcq(acq);
+    std::cout << "Choice right" << std::endl;
+    std::map<int, std::string> pointIdToLabelRight = pickFromAcq(acq);
 
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
     std::vector<btk::Point::Pointer> leftOutputPoints;
     std::vector<btk::Point::Pointer> rightOutputPoints;
     char index = 0;
+
 
     for (std::map<int, std::string>::iterator mapLeftIt = pointIdToLabelLeft.begin();
          mapLeftIt != pointIdToLabelLeft.end(); ++mapLeftIt) {
@@ -209,9 +209,11 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
         leftChain.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
         index++;
     }
-    std::vector<Eigen::Vector3d> jointsLeft = leftChain.getPositionsPerFrame(0);
-    jointsLeft.resize(3);
-    leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
+
+    std::vector<Eigen::Vector3d> jointsLeft;
+    jointsLeft = leftChain.getPositionsPerFrame(0);
+    jointsLeft.resize(jointsLeft.size() - 1);
+    leftChain.calculateDistancesDebugless(jointsLeft);
 
     index = 0;
     for (std::map<int, std::string>::iterator mapRightIt = pointIdToLabelRight.begin();
@@ -221,22 +223,25 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
         index++;
     }
     std::vector<Eigen::Vector3d> jointsRight = rightChain.getPositionsPerFrame(0);
-    jointsRight.resize(3);
-    rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
+    jointsRight.resize(jointsRight.size() - 1);
+    rightChain.calculateDistancesDebugless(jointsRight);
 
 
     FabrikSolve fabrikSolveRight(jointsRight, rightChain.pointAt(pointIdToLabelRight.rbegin()->second, 1),
-                                 rightChain.pointAt(pointIdToLabelRight.begin()->second, 0),
+                                 jointsRight.at(0),
                                  rightChain.getSetSumOfAllLenghts(),
                                  rightChain.getDistances(), tolerance, false);
     FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
-                                leftChain.pointAt(pointIdToLabelLeft.begin()->second, 0), leftChain.getSetSumOfAllLenghts(),
+                                jointsLeft.at(0),
+                                leftChain.getSetSumOfAllLenghts(),
                                 leftChain.getDistances(), tolerance, false);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
 
+        fabrikSolveRight.setOrigin(rightChain.pointAt(pointIdToLabelRight.begin()->second, index));
+        fabrikSolveLeft.setOrigin(leftChain.pointAt(pointIdToLabelLeft.begin()->second, index));
         fabrikSolveRight.setTarget(rightChain.pointAt(pointIdToLabelRight.rbegin()->second, index));
         fabrikSolveRight.solve();
         jointsRight = fabrikSolveRight.getJoints();
@@ -246,6 +251,7 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
         jointsLeft = fabrikSolveLeft.getJoints();
 
         size_t j = 0;
+
         std::map<int, std::string>::iterator pointToStringsLeft = pointIdToLabelLeft.begin();
         std::map<int, std::string>::iterator pointToStringsRight = pointIdToLabelRight.begin();
         while (j < jointsLeft.size()) {
@@ -259,6 +265,7 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
             ++pointToStringsLeft;
             ++pointToStringsRight;
         }
+
     }
     return printAcquisition;
 }
@@ -266,14 +273,12 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
 btk::Acquisition::Pointer writeIkConstrained(btk::Acquisition::Pointer acq) {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
-    float tolerance = 0.00001f;
-    int arrLeft[4] = {0,4,10,11};
-    std::vector<int> testDataLeftChoice(arrLeft, arrLeft + 4);
-    int arrRight[4] = {1, 12, 18, 19};
-    std::vector<int> testDataRightChoice(arrRight, arrRight + 4);
+    float tolerance = 0.01f;
 
-    std::map<int, std::string> pointIdToLabelLeft = testDataFromAcq(acq, testDataLeftChoice);
-    std::map<int, std::string> pointIdToLabelRight = testDataFromAcq(acq, testDataRightChoice);
+    std::cout << "Choice left" << std::endl;
+    std::map<int, std::string> pointIdToLabelLeft = pickFromAcq(acq);
+    std::cout << "Choice right" << std::endl;
+    std::map<int, std::string> pointIdToLabelRight = pickFromAcq(acq);
 
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
     std::vector<btk::Point::Pointer> leftOutputPoints;
@@ -306,11 +311,12 @@ btk::Acquisition::Pointer writeIkConstrained(btk::Acquisition::Pointer acq) {
                                  rightChain.pointAt(pointIdToLabelRight.begin()->second, 0),
                                  rightChain.getSetSumOfAllLenghts(),
                                  rightChain.getDistances(), tolerance, true);
-    fabrikSolveRight.setAllConeConstraints(0.1,0.1,0.1,0.1);
+    fabrikSolveRight.setAllConeConstraints(45, 45, 45, 45);
     FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
-                                leftChain.pointAt(pointIdToLabelLeft.begin()->second, 0), leftChain.getSetSumOfAllLenghts(),
+                                leftChain.pointAt(pointIdToLabelLeft.begin()->second, 0),
+                                leftChain.getSetSumOfAllLenghts(),
                                 leftChain.getDistances(), tolerance, true);
-    fabrikSolveLeft.setAllConeConstraints(0.1,0.1,0.1,0.1);
+    fabrikSolveLeft.setAllConeConstraints(45, 45, 45, 45);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
@@ -344,14 +350,27 @@ btk::Acquisition::Pointer writeIkConstrained(btk::Acquisition::Pointer acq) {
 
 int main(int argc, char **argv) {
     btk::Acquisition::Pointer acq = readAcquisition(argv[1]);
+    std::cout << argc << std::endl;
     std::cout << argv[3] << std::endl;
+    std::cout << argv[4] << std::endl;
 
-    if (argv[3] != NULL && std::strcmp(argv[3], "unconstrained") == 0) {
-        btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq);
-        writeAcquisition(ikAcq, argv[2]);
-    } else {
-        btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq);
-        writeAcquisition(ikAcq, argv[2]);
+    if (argc == 4) {
+        if (std::strcmp(argv[3], "--unconstrained") == 0 || std::strcmp(argv[3], "-u") == 0) {
+            btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq);
+            writeAcquisition(ikAcq, argv[2]);
+        } else if (std::strcmp(argv[3], "--constrained") == 0 || std::strcmp(argv[3], "-c") == 0) {
+            btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq);
+            writeAcquisition(ikAcq, argv[2]);
+        }
+    } else if (argc == 5) {
+        if ((std::strcmp(argv[3], "--unconstrained") == 0 && std::strcmp(argv[4], "--static-origin") == 0) ||
+            (std::strcmp(argv[4], "--unconstrained") == 0 && std::strcmp(argv[3], "--static-origin") == 0) ||
+            (std::strcmp(argv[3], "-u") == 0 && std::strcmp(argv[4], "-s") == 0) ||
+            (std::strcmp(argv[4], "-u") == 0 && std::strcmp(argv[3], "-s") == 0)) {
+            std::cout << "Writing with static middle between individiual origins" << std::endl;
+            btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq);
+            writeAcquisition(ikAcq, argv[2]);
+        }
     }
 
     return 0;

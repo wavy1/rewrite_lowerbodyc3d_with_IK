@@ -70,7 +70,7 @@ void FabrikSolve::chain_forwards() {
 
         Eigen::Vector3d lookAt = joints.at(index) + coneVec;
         Eigen::Vector3d coneOrigin = joints.at(index);
-        Eigen::Vector3d objectUpVector(0,1,0);
+        Eigen::Vector3d objectUpVector(0,0,1);
 
         Eigen::Vector3d zaxis = Eigen::Vector3d(lookAt - coneOrigin).normalized();
         Eigen::Vector3d xaxis = Eigen::Vector3d(objectUpVector.cross(zaxis)).normalized();
@@ -158,6 +158,7 @@ void FabrikSolve::setTarget(const Eigen::Vector3d &target) {
 }
 
 void FabrikSolve::setOrigin(const Eigen::Vector3d &origin) {
+    FabrikSolve::joints.at(0) = origin;
     FabrikSolve::origin = origin;
 }
 
@@ -194,6 +195,7 @@ FabrikSolve::chain_constrain(Eigen::Vector3d calc, Eigen::Vector3d line, Eigen::
     bool inbounds = ellipse <= 1 && scalar >= 0;
 
     if(! inbounds ){
+        std::cout << "Not in bounds, adjust" << std::endl;
         float a = std::atan2(yaspect, xaspect);
 
         float x = xbound * std::cos(a);
@@ -215,6 +217,8 @@ void FabrikSolve::calcConeDirection(Eigen::Vector3d calc, Eigen::Matrix4d cf) {
     Eigen::Vector3d leftVector = Eigen::Vector3d(-cf.coeff(0,0), -cf.coeff(1,0), -cf.coeff(2,0));
 
 
+    std::cout << "Direction Vector to target:("
+    << jointToTarget.coeff(0) << ", " << jointToTarget.coeff(1) << ", " << jointToTarget.coeff(2) << ")" << std::endl;
     if ((upVector - jointToTarget).norm() > (downVector - jointToTarget).norm()) {
         upvec = upVector;
     } else if ((upVector - jointToTarget).norm() < (downVector - jointToTarget).norm()) {
