@@ -3,6 +3,7 @@
 //
 
 #include <vector>
+#include <iostream>
 #include "AcquisitionChain.h"
 
 Eigen::Vector3d AcquisitionChain::pointAt(btk::Point::Pointer itP, int frameNumber) {
@@ -14,7 +15,13 @@ Eigen::Vector3d AcquisitionChain::pointAt(btk::Point::Pointer itP, int frameNumb
 
 Eigen::Vector3d AcquisitionChain::pointAt(std::string pointStr, int frameNumber) {
 
-    const Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matrix = this->stringToPointMap[pointStr]->GetValues();
+    Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matrix;
+
+    for(std::vector<std::pair< std::string, btk::Point::Pointer> >::iterator strToPIt = this->stringToPointMap.begin(); strToPIt != this->stringToPointMap.end(); ++strToPIt) {
+        if(strToPIt->first == pointStr){
+            matrix = strToPIt->second->GetValues();
+        }
+    }
 
     Eigen::Vector3d point(matrix.coeff(frameNumber, 0),
                           matrix.coeff(frameNumber, 1),
@@ -23,18 +30,19 @@ Eigen::Vector3d AcquisitionChain::pointAt(std::string pointStr, int frameNumber)
 }
 
 void AcquisitionChain::addToMap(std::string str, btk::Point::Pointer acqPoint, bool includeDebuggable,
-                                   std::string debugStr) {
-    this->stringToPointMap[str] = acqPoint;
+                                std::string debugStr) {
+    this->stringToPointMap.push_back(std::make_pair(str, acqPoint));
 
     if (includeDebuggable) {
-        this->stringToPointMapDebuggable[str] = std::make_pair(debugStr, acqPoint);
+        this->stringToPointMapDebuggable.push_back(std::make_pair(str, std::make_pair(debugStr, acqPoint)));
     }
 }
 
 std::vector<btk::Point::Pointer> AcquisitionChain::getPoints() {
     std::vector<btk::Point::Pointer> my_vals;
 
-    for(std::map<std::string, btk::Point::Pointer>::iterator peter = stringToPointMap.begin(); peter != stringToPointMap.end(); ++peter){
+    for (std::vector<std::pair<std::string, btk::Point::Pointer> >::iterator peter = stringToPointMap.begin();
+         peter != stringToPointMap.end(); ++peter) {
         my_vals.push_back(peter->second);
     }
     /* std::vector<btk::Point::Pointer> my_vals;
@@ -49,7 +57,9 @@ std::vector<btk::Point::Pointer> AcquisitionChain::getPoints() {
 std::vector<Eigen::Vector3d> AcquisitionChain::getPositionsPerFrame(int frameNumber) {
     std::vector<Eigen::Vector3d> my_vals;
 
-    for(std::map<std::string, btk::Point::Pointer>::iterator peter = stringToPointMap.begin(); peter != stringToPointMap.end(); ++peter){
+    for (std::vector<std::pair<std::string, btk::Point::Pointer> >::iterator peter = stringToPointMap.begin();
+         peter != stringToPointMap.end(); ++peter) {
+        std::cout << peter->first << std::endl;
         my_vals.push_back(pointAt(peter->second, frameNumber));
     }
 
@@ -67,7 +77,8 @@ AcquisitionChain::getDebuggablePairsVectorOfFrame(int frameNumber) {
 
     std::vector<std::pair<std::string, Eigen::Vector3d> > my_map;
 
-    for(std::map<std::string, std::pair<std::string, btk::Point::Pointer> >::iterator ptr = stringToPointMapDebuggable.begin(); ptr != stringToPointMapDebuggable.end(); ++ptr){
+    for (std::vector<std::pair<std::string, std::pair<std::string, btk::Point::Pointer> > >::iterator ptr = stringToPointMapDebuggable.begin();
+         ptr != stringToPointMapDebuggable.end(); ++ptr) {
         my_map.push_back(std::make_pair(ptr->second.first, pointAt(ptr->second.second, frameNumber)));
     }
 
@@ -84,13 +95,21 @@ AcquisitionChain::getDebuggablePairsVectorOfFrame(int frameNumber) {
 void AcquisitionChain::calculateDistancesDebugless(std::vector<Eigen::Vector3d> joints) {
 
     this->sumOfAllLenghts = 0;
-
+    std::cout << "[AcqChain] Size of Joints" << joints.size() << std::endl;
     for (size_t index = 0; index < joints.size(); ++index) {
         if (index + 1 < joints.size()) {
-            this->distances.insert(std::make_pair("P" + index, (joints.at(index + 1) - joints.at(index)).norm()));
+            std::cout << "[AcqChain]" << " distance for " << "P" << index << ":[" <<
+                      joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1) << ", "
+                      << joints.at(index).coeff(2) << std::endl;
+            std::cout << "[AcqChain]" << " distance for " << "P" << index+1 << ":[" <<
+                      joints.at(index + 1).coeff(0) << ", " << joints.at(index + 1).coeff(1) << ", "
+                    << joints.at(index + 1).coeff(2) << std::endl;
+
+            this->distances.push_back(std::make_pair("P" + index, (joints.at(index + 1) - joints.at(index)).norm()));
             this->sumOfAllLenghts += (joints.at(index + 1) - joints.at(index)).norm();
         }
     }
+    std::cout << "[AcqChain] distance" << this->distances.size() << std::endl;
 }
 
 float AcquisitionChain::getSetSumOfAllLenghts() {
@@ -100,7 +119,8 @@ float AcquisitionChain::getSetSumOfAllLenghts() {
 std::vector<float> AcquisitionChain::getDistances() {
     std::vector<float> distances;
 
-    for(std::map<std::string, float>::iterator distanceMapIt = this->distances.begin(); distanceMapIt != this->distances.end(); ++distanceMapIt){
+    for (std::vector<std::pair<std::string, float> >::iterator distanceMapIt = this->distances.begin();
+         distanceMapIt != this->distances.end(); ++distanceMapIt) {
         distances.push_back(distanceMapIt->second);
     }
     return distances;

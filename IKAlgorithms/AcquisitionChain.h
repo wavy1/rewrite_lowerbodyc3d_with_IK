@@ -27,10 +27,10 @@ public:
 
 
 private:
-    std::map<std::string, float> distances;
+    std::vector<std::pair<std::string, float> > distances;
     float sumOfAllLenghts;
-    std::map<std::string, btk::Point::Pointer> stringToPointMap;
-    std::map<std::string, std::pair<std::string, btk::Point::Pointer> > stringToPointMapDebuggable;
+    std::vector<std::pair<std::string, btk::Point::Pointer> > stringToPointMap;
+    std::vector<std::pair<std::string, std::pair<std::string, btk::Point::Pointer> > > stringToPointMapDebuggable;
 };
 
 

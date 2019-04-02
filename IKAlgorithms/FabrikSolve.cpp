@@ -113,7 +113,9 @@ void FabrikSolve::solve() {
     float dif;
     int bcount;
     std::cout << "Distance: " << distance << " vs. total Lenght: " << totalLength << std::endl;
-    std::cout << "Joint Number: " << distances.size() << std::endl;
+    std::cout << "Distances Size:" << distances.size() << std::endl;
+    std::cout << "Joints Size:" << joints.size() << std::endl;
+    std::cout << "Distances Number: " << distances.size() << std::endl;
     if (distance > totalLength) {
         for (size_t index = 0; index < joints.size(); ++index) {
             r = (target - joints.at(index)).norm();

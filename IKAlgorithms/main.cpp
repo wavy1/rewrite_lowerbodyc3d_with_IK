@@ -185,6 +185,148 @@ std::map<int, std::string> testDataFromAcq(btk::Acquisition::Pointer acq, std::v
     return pointStrs;
 }
 
+btk::Acquisition::Pointer writeIkUnconstrainedWithOrigin(btk::Acquisition::Pointer acq) {
+    AcquisitionChain rightChain;
+    AcquisitionChain leftChain;
+    float tolerance = 0.00001f;
+
+    std::cout << "Choice left" << std::endl;
+    int arrLeft[4] = {0, 4, 10, 11};
+    std::vector<int> testDataLeftChoice(arrLeft, arrLeft + 4);
+    std::map<int, std::string> testDataChoiceMapLeft = testDataFromAcq(acq, testDataLeftChoice);
+    std::list<std::pair<int, std::string> > pointIdToLabelLeft;
+    pointIdToLabelLeft.push_back(std::make_pair(20, "originLeft"));
+    for (std::map<int, std::string>::iterator iterator = testDataChoiceMapLeft.begin();
+         iterator != testDataChoiceMapLeft.end(); ++iterator) {
+        pointIdToLabelLeft.push_back(*iterator);
+    }
+
+    for (std::list<std::pair<int, std::string> >::iterator iterator = pointIdToLabelLeft.begin();
+         iterator != pointIdToLabelLeft.end(); ++iterator) {
+        std::cout << "id:" << iterator->first << " " << iterator->second << std::endl;
+    }
+
+
+    int arrRight[4] = {1, 12, 18, 19};
+    std::vector<int> testDataRightChoice(arrRight, arrRight + 4);
+    std::cout << "Choice right" << std::endl;
+    std::map<int, std::string> testDataChoiceMapRight = testDataFromAcq(acq, testDataRightChoice);
+    std::list<std::pair<int, std::string> > pointIdToLabelRight;
+    pointIdToLabelRight.push_back(std::make_pair(21, "originRight"));
+    for (std::map<int, std::string>::iterator iterator = testDataChoiceMapRight.begin();
+         iterator != testDataChoiceMapRight.end(); ++iterator) {
+        pointIdToLabelRight.push_back(*iterator);
+    }
+
+    Eigen::Vector3d originInbetween;
+
+    btk::Point::Pointer originLeftPoint = btk::Point::New("originLeft", acq->GetPointFrameNumber());
+    btk::Point::Pointer originRightPoint = btk::Point::New("originRight", acq->GetPointFrameNumber());
+
+    Eigen::Vector3d leftOrigin(acq->GetPoint(testDataChoiceMapLeft.begin()->first).get()->GetValues().coeff(0, 0),
+                               acq->GetPoint(testDataChoiceMapLeft.begin()->first).get()->GetValues().coeff(0, 1),
+                               acq->GetPoint(testDataChoiceMapLeft.begin()->first).get()->GetValues().coeff(0, 2));
+    Eigen::Vector3d rightOrigin(acq->GetPoint(testDataChoiceMapRight.begin()->first).get()->GetValues().coeff(0, 0),
+                                acq->GetPoint(testDataChoiceMapRight.begin()->first).get()->GetValues().coeff(0, 1),
+                                acq->GetPoint(testDataChoiceMapRight.begin()->first).get()->GetValues().coeff(0, 2));
+    originInbetween = (leftOrigin + rightOrigin) / 2;
+
+    for (int i = 0; i < acq->GetPointFrameNumber(); ++i) {
+        originRightPoint->SetDataSlice(i, originInbetween.coeff(0), originInbetween.coeff(1),
+                             originInbetween.coeff(2));
+        originLeftPoint->SetDataSlice(i, originInbetween.coeff(0), originInbetween.coeff(1),
+                                      originInbetween.coeff(2));
+    }
+
+    leftChain.addToMap("originLeft", originLeftPoint);
+    rightChain.addToMap("originRight", originRightPoint);
+    btk::Acquisition::Pointer printAcquisition = acq->Clone();
+    std::vector<btk::Point::Pointer> leftOutputPoints;
+    std::vector<btk::Point::Pointer> rightOutputPoints;
+
+    btk::Point::Pointer point;
+
+    int index = 0;
+
+    for (std::list<std::pair<int, std::string> >::iterator mapLeftIt = pointIdToLabelLeft.begin();
+         mapLeftIt != pointIdToLabelLeft.end(); ++mapLeftIt) {
+        std::cout << "Data: " << mapLeftIt->first << " " << mapLeftIt->second << " " << index << std::endl;
+        point = btk::Point::New(mapLeftIt->second + "Fabrik", acq->GetPointFrameNumber());
+        if(mapLeftIt->second ==  "originLeft"){
+            printAcquisition->AppendPoint(point);
+        } else {
+            leftChain.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
+        }
+        leftOutputPoints.push_back(point);
+        index++;
+    }
+    std::vector<Eigen::Vector3d> jointsLeft;
+    jointsLeft = leftChain.getPositionsPerFrame(0);
+    leftChain.calculateDistancesDebugless(jointsLeft);
+
+    index = 0;
+    for (std::list<std::pair<int, std::string> >::iterator mapRightIt = pointIdToLabelRight.begin();
+         mapRightIt != pointIdToLabelRight.end(); ++mapRightIt ) {
+        std::cout << "Data: " << mapRightIt->first << " " << mapRightIt->second << " " << index << std::endl;
+        point = btk::Point::New(mapRightIt->second + "Fabrik", acq->GetPointFrameNumber());
+        if(mapRightIt->second == "originRight"){
+            std::cout << "Appending origin Right" << mapRightIt->second << std::endl;
+            std::cout << point->GetLabel() << std::endl;
+            printAcquisition->AppendPoint(point);
+        } else {
+            rightChain.addToMap(mapRightIt->second, acq->GetPoint(mapRightIt->second), true, "R" + index);
+        }
+        rightOutputPoints.push_back(point);
+        index++;
+    }
+    std::vector<Eigen::Vector3d> jointsRight = rightChain.getPositionsPerFrame(0);
+    rightChain.calculateDistancesDebugless(jointsRight);
+
+    printPoints(printAcquisition);
+
+    FabrikSolve fabrikSolveRight(jointsRight, rightChain.pointAt(pointIdToLabelRight.rbegin()->second, 1),
+                                 jointsRight.at(0),
+                                 rightChain.getSetSumOfAllLenghts(),
+                                 rightChain.getDistances(), tolerance, false);
+    FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
+                                jointsLeft.at(0),
+                                leftChain.getSetSumOfAllLenghts(),
+                                leftChain.getDistances(), tolerance, false);
+
+    std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
+    for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
+        std::cout << "Index: " << index << std::endl;
+
+        fabrikSolveRight.setTarget(rightChain.pointAt(pointIdToLabelRight.rbegin()->second, index));
+        fabrikSolveRight.solve();
+        jointsRight = fabrikSolveRight.getJoints();
+
+        fabrikSolveLeft.setTarget(leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, index));
+        fabrikSolveLeft.solve();
+        jointsLeft = fabrikSolveLeft.getJoints();
+
+        size_t j = 0;
+
+        std::list<std::pair<int, std::string> >::iterator pointToStringsLeft = pointIdToLabelLeft.begin();
+        std::list<std::pair<int, std::string> >::iterator pointToStringsRight = pointIdToLabelRight.begin();
+        while (j < jointsLeft.size()) {
+            std::cout << j << std::endl;
+            leftOutputPoints.at(j).get()->SetDataSlice(index, jointsLeft.at(j).coeff(0), jointsLeft.at(j).coeff(1),
+                                                       jointsLeft.at(j).coeff(2));
+            rightOutputPoints.at(j).get()->SetDataSlice(index, jointsRight.at(j).coeff(0), jointsRight.at(j).coeff(1),
+                                                        jointsRight.at(j).coeff(2));
+
+            printAcquisition->SetPoint(pointToStringsRight->first, rightOutputPoints.at(j));
+            printAcquisition->SetPoint(pointToStringsLeft->first, leftOutputPoints.at(j));
+            ++j;
+            ++pointToStringsLeft;
+            ++pointToStringsRight;
+        }
+
+    }
+    return printAcquisition;
+}
+
 
 btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
     AcquisitionChain rightChain;
@@ -351,8 +493,7 @@ btk::Acquisition::Pointer writeIkConstrained(btk::Acquisition::Pointer acq) {
 int main(int argc, char **argv) {
     btk::Acquisition::Pointer acq = readAcquisition(argv[1]);
     std::cout << argc << std::endl;
-    std::cout << argv[3] << std::endl;
-    std::cout << argv[4] << std::endl;
+
 
     if (argc == 4) {
         if (std::strcmp(argv[3], "--unconstrained") == 0 || std::strcmp(argv[3], "-u") == 0) {
@@ -368,7 +509,7 @@ int main(int argc, char **argv) {
             (std::strcmp(argv[3], "-u") == 0 && std::strcmp(argv[4], "-s") == 0) ||
             (std::strcmp(argv[4], "-u") == 0 && std::strcmp(argv[3], "-s") == 0)) {
             std::cout << "Writing with static middle between individiual origins" << std::endl;
-            btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq);
+            btk::Acquisition::Pointer ikAcq = writeIkUnconstrainedWithOrigin(acq);
             writeAcquisition(ikAcq, argv[2]);
         }
     }
