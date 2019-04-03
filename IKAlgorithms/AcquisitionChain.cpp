@@ -17,8 +17,9 @@ Eigen::Vector3d AcquisitionChain::pointAt(std::string pointStr, int frameNumber)
 
     Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> matrix;
 
-    for(std::vector<std::pair< std::string, btk::Point::Pointer> >::iterator strToPIt = this->stringToPointMap.begin(); strToPIt != this->stringToPointMap.end(); ++strToPIt) {
-        if(strToPIt->first == pointStr){
+    for (std::vector<std::pair<std::string, btk::Point::Pointer> >::iterator strToPIt = this->stringToPointMap.begin();
+         strToPIt != this->stringToPointMap.end(); ++strToPIt) {
+        if (strToPIt->first == pointStr) {
             matrix = strToPIt->second->GetValues();
         }
     }
@@ -101,9 +102,9 @@ void AcquisitionChain::calculateDistancesDebugless(std::vector<Eigen::Vector3d> 
             std::cout << "[AcqChain]" << " distance for " << "P" << index << ":[" <<
                       joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1) << ", "
                       << joints.at(index).coeff(2) << std::endl;
-            std::cout << "[AcqChain]" << " distance for " << "P" << index+1 << ":[" <<
+            std::cout << "[AcqChain]" << " distance for " << "P" << index + 1 << ":[" <<
                       joints.at(index + 1).coeff(0) << ", " << joints.at(index + 1).coeff(1) << ", "
-                    << joints.at(index + 1).coeff(2) << std::endl;
+                      << joints.at(index + 1).coeff(2) << std::endl;
 
             this->distances.push_back(std::make_pair("P" + index, (joints.at(index + 1) - joints.at(index)).norm()));
             this->sumOfAllLenghts += (joints.at(index + 1) - joints.at(index)).norm();
@@ -124,4 +125,29 @@ std::vector<float> AcquisitionChain::getDistances() {
         distances.push_back(distanceMapIt->second);
     }
     return distances;
+}
+
+std::vector<std::pair<int, btk::Point::Pointer> >
+AcquisitionChain::prepareOutput(btk::Acquisition::Pointer acq,
+                                std::vector<std::pair<int, btk::Point::Pointer> > pointPicks,
+                                std::vector<std::pair<int, btk::Point::Pointer> > outputPoints) {
+
+    size_t index = 0;
+    btk::Point::Pointer point;
+
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator pointsIt = pointPicks.begin();
+         pointsIt != pointPicks.end(); ++pointsIt) {
+        std::cout << "Data: " << pointsIt->first << " " << pointsIt->second->GetLabel() << " " << index
+                  << std::endl;
+        point = btk::Point::New(pointsIt->second->GetLabel() + "Fabrik", acq->GetPointFrameNumber());
+        this->addToMap(pointsIt->second->GetLabel(), pointsIt->second, true, "L" + index);
+        outputPoints.push_back(std::make_pair(pointsIt->first, point));
+        index++;
+    }
+
+    return outputPoints;
+}
+
+AcquisitionChain::~AcquisitionChain() {
+    std::cout << "Destructor for Chain has been executed\n" << std::endl;
 }

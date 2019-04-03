@@ -15,15 +15,30 @@
 
 class AcquisitionChain {
 public:
+    virtual ~AcquisitionChain();
+
     Eigen::Vector3d pointAt(btk::Point::Pointer itP, int frameNumber);
+
     Eigen::Vector3d pointAt(std::string pointStr, int frameNumber);
-    void addToMap(std::string str, btk::Point::Pointer acqPoint, bool includeDebuggable = false, std::string debugStr = "");
+
+    void
+    addToMap(std::string str, btk::Point::Pointer acqPoint, bool includeDebuggable = false, std::string debugStr = "");
+
     std::vector<Eigen::Vector3d> getPositionsPerFrame(int frameNumber);
+
     std::vector<btk::Point::Pointer> getPoints();
+
     std::vector<std::pair<std::string, Eigen::Vector3d> > getDebuggablePairsVectorOfFrame(int frameNumber);
+
     void calculateDistancesDebugless(std::vector<Eigen::Vector3d> joints);
+
     float getSetSumOfAllLenghts();
+
     std::vector<float> getDistances();
+
+    std::vector<std::pair<int, btk::Point::Pointer> > prepareOutput(btk::Acquisition::Pointer acq,
+                                                                              std::vector<std::pair<int, btk::Point::Pointer> > pointPicks,
+                                                                              std::vector<std::pair<int, btk::Point::Pointer> > outputPoints);
 
 
 private:

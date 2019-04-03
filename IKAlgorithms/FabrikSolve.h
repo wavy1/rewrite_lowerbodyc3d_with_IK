@@ -6,6 +6,7 @@
 #define IKALGORITHMS_FABRIKSOLVE_H
 
 
+#include "AcquisitionChain.h"
 #include <Eigen/Dense>
 #include <vector>
 
@@ -13,6 +14,8 @@ class FabrikSolve {
 public:
     FabrikSolve(std::vector<Eigen::Vector3d> joints, Eigen::Vector3d target, Eigen::Vector3d origin,
                 float totalLength, std::vector<float> distances, float tolerance, bool isConstrained);
+
+    FabrikSolve(AcquisitionChain chain, float tolerance, bool isConstrained);
 
     virtual ~FabrikSolve();
 

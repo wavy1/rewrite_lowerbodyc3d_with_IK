@@ -122,14 +122,14 @@ std::pair<std::vector<std::pair<std::string, float> >, float> calculateDistances
     return std::make_pair(distances, sumOfAllLenghts);
 }
 
-std::map<int, std::string> pickFromAcq(btk::Acquisition::Pointer acq) {
-    std::map<int, std::string> pointStrs;
+std::vector<std::pair<int, btk::Point::Pointer> > pickFromAcq(btk::Acquisition::Pointer acq) {
+    std::vector<std::pair<int, btk::Point::Pointer> > idsAndPoints;
     std::vector<int> choices;
 
     int index = 0;
-    for (btk::Acquisition::PointIterator peter = acq->BeginPoint(); peter != acq->EndPoint(); ++peter) {
-        std::cout << "[" << index << "] " << "(Point: " << peter->get()->GetLabel() << "Type: "
-                  << peter->get()->GetType() << ")" << std::endl;
+    for (btk::Acquisition::PointIterator acqIt = acq->BeginPoint(); acqIt != acq->EndPoint(); ++acqIt) {
+        std::cout << "[" << index << "] " << "(Point: " << acqIt->get()->GetLabel() << "Type: "
+                  << acqIt->get()->GetType() << ")" << std::endl;
         index++;
     }
 
@@ -148,20 +148,20 @@ std::map<int, std::string> pickFromAcq(btk::Acquisition::Pointer acq) {
 
     index = 0;
 
-    for (btk::Acquisition::PointIterator peter = acq->BeginPoint(); peter != acq->EndPoint(); ++peter) {
+    for (btk::Acquisition::PointIterator acqIt = acq->BeginPoint(); acqIt != acq->EndPoint(); ++acqIt) {
 
-        for (std::vector<int>::iterator intChoiceIt = choices.begin(); intChoiceIt != choices.end(); ++intChoiceIt) {
-            if (*intChoiceIt == index) {
-                std::cout << "Added " << *intChoiceIt << " to " << peter->get()->GetLabel() << " to the map"
+        for (std::vector<int>::iterator idChoicesIt = choices.begin(); idChoicesIt != choices.end(); ++idChoicesIt) {
+            if (*idChoicesIt == index) {
+                std::cout << "Added " << *idChoicesIt << " to " << acqIt->get()->GetLabel() << " to the map"
                           << std::endl;
-                pointStrs.insert(std::make_pair(*intChoiceIt, peter->get()->GetLabel()));
+                idsAndPoints.push_back(std::make_pair(*idChoicesIt, acqIt->get()));
             }
         }
 
         index++;
     }
 
-    return pointStrs;
+    return idsAndPoints;
 }
 
 
@@ -185,147 +185,107 @@ std::map<int, std::string> testDataFromAcq(btk::Acquisition::Pointer acq, std::v
     return pointStrs;
 }
 
+btk::Point::Pointer createPointOriginBetweenTwoPoints(btk::Acquisition::Pointer acq, btk::Point::Pointer leftPoint,
+                                                      btk::Point::Pointer rightPoint, std::string originIdentifierStr) {
+
+
+    Eigen::Vector3d leftOrigin(leftPoint->GetValues().coeff(0, 0),
+                               leftPoint->GetValues().coeff(0, 1),
+                               leftPoint->GetValues().coeff(0, 2));
+    Eigen::Vector3d rightOrigin(rightPoint->GetValues().coeff(0, 0),
+                                rightPoint->GetValues().coeff(0, 1),
+                                rightPoint->GetValues().coeff(0, 2));
+    Eigen::Vector3d originInbetween = (leftOrigin + rightOrigin) / 2;
+
+    btk::Point::Pointer originPoint = btk::Point::New("Origin" + originIdentifierStr, acq->GetPointFrameNumber());
+    for (int i = 0; i < acq->GetPointFrameNumber(); ++i) {
+        originPoint->SetDataSlice(i, originInbetween.coeff(0), originInbetween.coeff(1),
+                                  originInbetween.coeff(2));
+    }
+
+    return originPoint;
+}
+
 btk::Acquisition::Pointer writeIkUnconstrainedWithOrigin(btk::Acquisition::Pointer acq) {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
     float tolerance = 0.00001f;
 
     std::cout << "Choice left" << std::endl;
-    int arrLeft[4] = {0, 4, 10, 11};
-    std::vector<int> testDataLeftChoice(arrLeft, arrLeft + 4);
-    std::map<int, std::string> testDataChoiceMapLeft = testDataFromAcq(acq, testDataLeftChoice);
-    std::list<std::pair<int, std::string> > pointIdToLabelLeft;
-    pointIdToLabelLeft.push_back(std::make_pair(20, "originLeft"));
-    for (std::map<int, std::string>::iterator iterator = testDataChoiceMapLeft.begin();
-         iterator != testDataChoiceMapLeft.end(); ++iterator) {
-        pointIdToLabelLeft.push_back(*iterator);
-    }
+    std::vector<std::pair<int, btk::Point::Pointer> > leftPointPicks = pickFromAcq(acq);
 
-    for (std::list<std::pair<int, std::string> >::iterator iterator = pointIdToLabelLeft.begin();
-         iterator != pointIdToLabelLeft.end(); ++iterator) {
-        std::cout << "id:" << iterator->first << " " << iterator->second << std::endl;
-    }
-
-
-    int arrRight[4] = {1, 12, 18, 19};
-    std::vector<int> testDataRightChoice(arrRight, arrRight + 4);
     std::cout << "Choice right" << std::endl;
-    std::map<int, std::string> testDataChoiceMapRight = testDataFromAcq(acq, testDataRightChoice);
-    std::list<std::pair<int, std::string> > pointIdToLabelRight;
-    pointIdToLabelRight.push_back(std::make_pair(21, "originRight"));
-    for (std::map<int, std::string>::iterator iterator = testDataChoiceMapRight.begin();
-         iterator != testDataChoiceMapRight.end(); ++iterator) {
-        pointIdToLabelRight.push_back(*iterator);
+    std::vector<std::pair<int, btk::Point::Pointer> > rightPointPicks = pickFromAcq(acq);
+
+    btk::Point::Pointer originLeftPoint = createPointOriginBetweenTwoPoints(acq, rightPointPicks.begin()->second,
+                                                                            leftPointPicks.begin()->second, "Left");
+    btk::Point::Pointer originRightPoint = createPointOriginBetweenTwoPoints(acq, rightPointPicks.begin()->second,
+                                                                             leftPointPicks.begin()->second, "Right");
+
+    // Create Right Input points vector
+    std::vector<std::pair<int, btk::Point::Pointer> > rightInputPoints;
+    rightInputPoints.push_back(std::make_pair(20, originRightPoint));
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator rightPicksIt = rightPointPicks.begin();
+         rightPicksIt != rightPointPicks.end(); ++rightPicksIt) {
+        rightInputPoints.push_back(std::make_pair(rightPicksIt->first, rightPicksIt->second));
     }
 
-    Eigen::Vector3d originInbetween;
-
-    btk::Point::Pointer originLeftPoint = btk::Point::New("originLeft", acq->GetPointFrameNumber());
-    btk::Point::Pointer originRightPoint = btk::Point::New("originRight", acq->GetPointFrameNumber());
-
-    Eigen::Vector3d leftOrigin(acq->GetPoint(testDataChoiceMapLeft.begin()->first).get()->GetValues().coeff(0, 0),
-                               acq->GetPoint(testDataChoiceMapLeft.begin()->first).get()->GetValues().coeff(0, 1),
-                               acq->GetPoint(testDataChoiceMapLeft.begin()->first).get()->GetValues().coeff(0, 2));
-    Eigen::Vector3d rightOrigin(acq->GetPoint(testDataChoiceMapRight.begin()->first).get()->GetValues().coeff(0, 0),
-                                acq->GetPoint(testDataChoiceMapRight.begin()->first).get()->GetValues().coeff(0, 1),
-                                acq->GetPoint(testDataChoiceMapRight.begin()->first).get()->GetValues().coeff(0, 2));
-    originInbetween = (leftOrigin + rightOrigin) / 2;
-
-    for (int i = 0; i < acq->GetPointFrameNumber(); ++i) {
-        originRightPoint->SetDataSlice(i, originInbetween.coeff(0), originInbetween.coeff(1),
-                             originInbetween.coeff(2));
-        originLeftPoint->SetDataSlice(i, originInbetween.coeff(0), originInbetween.coeff(1),
-                                      originInbetween.coeff(2));
+    // Create Left Input points vector
+    std::vector<std::pair<int, btk::Point::Pointer> > leftInputPoints;
+    leftInputPoints.push_back(std::make_pair(21, originLeftPoint));
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator leftPicksIt = leftPointPicks.begin();
+         leftPicksIt != leftPointPicks.end(); ++leftPicksIt) {
+        leftInputPoints.push_back(std::make_pair(leftPicksIt->first, leftPicksIt->second));
     }
 
-    leftChain.addToMap("originLeft", originLeftPoint);
-    rightChain.addToMap("originRight", originRightPoint);
+    // Create output points
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
-    std::vector<btk::Point::Pointer> leftOutputPoints;
-    std::vector<btk::Point::Pointer> rightOutputPoints;
+    printAcquisition->AppendPoint(originLeftPoint);
+    printAcquisition->AppendPoint(originRightPoint);
 
-    btk::Point::Pointer point;
+    std::vector<std::pair<int, btk::Point::Pointer> > leftOutputPoints;
+    std::vector<std::pair<int, btk::Point::Pointer> > rightOutputPoints;
+    leftOutputPoints = leftChain.prepareOutput(acq, leftPointPicks, leftOutputPoints);
+    rightOutputPoints = rightChain.prepareOutput(acq, rightPointPicks, rightOutputPoints);
 
-    int index = 0;
+    leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
+    rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
 
-    for (std::list<std::pair<int, std::string> >::iterator mapLeftIt = pointIdToLabelLeft.begin();
-         mapLeftIt != pointIdToLabelLeft.end(); ++mapLeftIt) {
-        std::cout << "Data: " << mapLeftIt->first << " " << mapLeftIt->second << " " << index << std::endl;
-        point = btk::Point::New(mapLeftIt->second + "Fabrik", acq->GetPointFrameNumber());
-        if(mapLeftIt->second ==  "originLeft"){
-            printAcquisition->AppendPoint(point);
-        } else {
-            leftChain.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
-        }
-        leftOutputPoints.push_back(point);
-        index++;
-    }
-    std::vector<Eigen::Vector3d> jointsLeft;
-    jointsLeft = leftChain.getPositionsPerFrame(0);
-    leftChain.calculateDistancesDebugless(jointsLeft);
-
-    index = 0;
-    for (std::list<std::pair<int, std::string> >::iterator mapRightIt = pointIdToLabelRight.begin();
-         mapRightIt != pointIdToLabelRight.end(); ++mapRightIt ) {
-        std::cout << "Data: " << mapRightIt->first << " " << mapRightIt->second << " " << index << std::endl;
-        point = btk::Point::New(mapRightIt->second + "Fabrik", acq->GetPointFrameNumber());
-        if(mapRightIt->second == "originRight"){
-            std::cout << "Appending origin Right" << mapRightIt->second << std::endl;
-            std::cout << point->GetLabel() << std::endl;
-            printAcquisition->AppendPoint(point);
-        } else {
-            rightChain.addToMap(mapRightIt->second, acq->GetPoint(mapRightIt->second), true, "R" + index);
-        }
-        rightOutputPoints.push_back(point);
-        index++;
-    }
-    std::vector<Eigen::Vector3d> jointsRight = rightChain.getPositionsPerFrame(0);
-    rightChain.calculateDistancesDebugless(jointsRight);
-
-    printPoints(printAcquisition);
-
-    FabrikSolve fabrikSolveRight(jointsRight, rightChain.pointAt(pointIdToLabelRight.rbegin()->second, 1),
-                                 jointsRight.at(0),
-                                 rightChain.getSetSumOfAllLenghts(),
-                                 rightChain.getDistances(), tolerance, false);
-    FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
-                                jointsLeft.at(0),
-                                leftChain.getSetSumOfAllLenghts(),
-                                leftChain.getDistances(), tolerance, false);
+    FabrikSolve fabrikSolveRight(rightChain, tolerance, false);
+    FabrikSolve fabrikSolveLeft(leftChain, tolerance, false);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
 
-        fabrikSolveRight.setTarget(rightChain.pointAt(pointIdToLabelRight.rbegin()->second, index));
+        fabrikSolveRight.setTarget(rightChain.pointAt(rightInputPoints.rbegin()->second, index));
         fabrikSolveRight.solve();
-        jointsRight = fabrikSolveRight.getJoints();
 
-        fabrikSolveLeft.setTarget(leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, index));
+        fabrikSolveLeft.setTarget(leftChain.pointAt(leftInputPoints.rbegin()->second, index));
         fabrikSolveLeft.solve();
-        jointsLeft = fabrikSolveLeft.getJoints();
 
         size_t j = 0;
 
-        std::list<std::pair<int, std::string> >::iterator pointToStringsLeft = pointIdToLabelLeft.begin();
-        std::list<std::pair<int, std::string> >::iterator pointToStringsRight = pointIdToLabelRight.begin();
-        while (j < jointsLeft.size()) {
+        while (j < fabrikSolveLeft.getJoints().size()) {
             std::cout << j << std::endl;
-            leftOutputPoints.at(j).get()->SetDataSlice(index, jointsLeft.at(j).coeff(0), jointsLeft.at(j).coeff(1),
-                                                       jointsLeft.at(j).coeff(2));
-            rightOutputPoints.at(j).get()->SetDataSlice(index, jointsRight.at(j).coeff(0), jointsRight.at(j).coeff(1),
-                                                        jointsRight.at(j).coeff(2));
+            leftOutputPoints.at(j).second->SetDataSlice(index, fabrikSolveLeft.getJoints().at(j).coeff(0),
+                                                        fabrikSolveLeft.getJoints().at(j).coeff(1),
+                                                        fabrikSolveLeft.getJoints().at(j).coeff(2));
+            rightOutputPoints.at(j).second->SetDataSlice(index, fabrikSolveRight.getJoints().at(j).coeff(0),
+                                                         fabrikSolveRight.getJoints().at(j).coeff(1),
+                                                         fabrikSolveRight.getJoints().at(j).coeff(2));
 
-            printAcquisition->SetPoint(pointToStringsRight->first, rightOutputPoints.at(j));
-            printAcquisition->SetPoint(pointToStringsLeft->first, leftOutputPoints.at(j));
+            printAcquisition->SetPoint(leftOutputPoints.at(j).first, rightOutputPoints.at(j).second);
+            printAcquisition->SetPoint(leftOutputPoints.at(j).first, leftOutputPoints.at(j).second);
             ++j;
-            ++pointToStringsLeft;
-            ++pointToStringsRight;
         }
 
     }
     return printAcquisition;
 }
+
+
+
 
 
 btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
@@ -333,161 +293,136 @@ btk::Acquisition::Pointer writeIkUnconstrained(btk::Acquisition::Pointer acq) {
     AcquisitionChain leftChain;
     float tolerance = 0.00001f;
 
-
     std::cout << "Choice left" << std::endl;
-    std::map<int, std::string> pointIdToLabelLeft = pickFromAcq(acq);
+    std::vector<std::pair<int, btk::Point::Pointer> > leftPointPicks = pickFromAcq(acq);
+
     std::cout << "Choice right" << std::endl;
-    std::map<int, std::string> pointIdToLabelRight = pickFromAcq(acq);
+    std::vector<std::pair<int, btk::Point::Pointer> > rightPointPicks = pickFromAcq(acq);
 
+    // Create Right Input points vector
+    std::vector<std::pair<int, btk::Point::Pointer> > rightInputPoints;
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator rightPicksIt = rightPointPicks.begin();
+         rightPicksIt != rightPointPicks.end(); ++rightPicksIt) {
+        rightInputPoints.push_back(std::make_pair(rightPicksIt->first, rightPicksIt->second));
+    }
+
+    // Create Left Input points vector
+    std::vector<std::pair<int, btk::Point::Pointer> > leftInputPoints;
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator leftPicksIt = leftPointPicks.begin();
+         leftPicksIt != leftPointPicks.end(); ++leftPicksIt) {
+        leftInputPoints.push_back(std::make_pair(leftPicksIt->first, leftPicksIt->second));
+    }
+
+    // Create output points
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
-    std::vector<btk::Point::Pointer> leftOutputPoints;
-    std::vector<btk::Point::Pointer> rightOutputPoints;
-    char index = 0;
+    std::vector<std::pair<int, btk::Point::Pointer> > leftOutputPoints;
+    std::vector<std::pair<int, btk::Point::Pointer> > rightOutputPoints;
+    leftOutputPoints = leftChain.prepareOutput(acq, leftPointPicks, leftOutputPoints);
+    rightOutputPoints = rightChain.prepareOutput(acq, rightPointPicks, rightOutputPoints);
 
+    leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
+    rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
 
-    for (std::map<int, std::string>::iterator mapLeftIt = pointIdToLabelLeft.begin();
-         mapLeftIt != pointIdToLabelLeft.end(); ++mapLeftIt) {
-        leftOutputPoints.push_back(btk::Point::New(mapLeftIt->second + "Fabrik", acq->GetPointFrameNumber()));
-        leftChain.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
-        index++;
-    }
-
-    std::vector<Eigen::Vector3d> jointsLeft;
-    jointsLeft = leftChain.getPositionsPerFrame(0);
-    jointsLeft.resize(jointsLeft.size() - 1);
-    leftChain.calculateDistancesDebugless(jointsLeft);
-
-    index = 0;
-    for (std::map<int, std::string>::iterator mapRightIt = pointIdToLabelRight.begin();
-         mapRightIt != pointIdToLabelRight.end(); ++mapRightIt) {
-        rightOutputPoints.push_back(btk::Point::New(mapRightIt->second + "Fabrik", acq->GetPointFrameNumber()));
-        rightChain.addToMap(mapRightIt->second, acq->GetPoint(mapRightIt->second), true, "R" + index);
-        index++;
-    }
-    std::vector<Eigen::Vector3d> jointsRight = rightChain.getPositionsPerFrame(0);
-    jointsRight.resize(jointsRight.size() - 1);
-    rightChain.calculateDistancesDebugless(jointsRight);
-
-
-    FabrikSolve fabrikSolveRight(jointsRight, rightChain.pointAt(pointIdToLabelRight.rbegin()->second, 1),
-                                 jointsRight.at(0),
-                                 rightChain.getSetSumOfAllLenghts(),
-                                 rightChain.getDistances(), tolerance, false);
-    FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
-                                jointsLeft.at(0),
-                                leftChain.getSetSumOfAllLenghts(),
-                                leftChain.getDistances(), tolerance, false);
+    FabrikSolve fabrikSolveRight(rightChain, tolerance, false);
+    FabrikSolve fabrikSolveLeft(leftChain, tolerance, false);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
 
-        fabrikSolveRight.setOrigin(rightChain.pointAt(pointIdToLabelRight.begin()->second, index));
-        fabrikSolveLeft.setOrigin(leftChain.pointAt(pointIdToLabelLeft.begin()->second, index));
-        fabrikSolveRight.setTarget(rightChain.pointAt(pointIdToLabelRight.rbegin()->second, index));
+        fabrikSolveRight.setTarget(rightChain.pointAt(rightInputPoints.rbegin()->second, index));
         fabrikSolveRight.solve();
-        jointsRight = fabrikSolveRight.getJoints();
 
-        fabrikSolveLeft.setTarget(leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, index));
+        fabrikSolveLeft.setTarget(leftChain.pointAt(leftInputPoints.rbegin()->second, index));
         fabrikSolveLeft.solve();
-        jointsLeft = fabrikSolveLeft.getJoints();
 
         size_t j = 0;
 
-        std::map<int, std::string>::iterator pointToStringsLeft = pointIdToLabelLeft.begin();
-        std::map<int, std::string>::iterator pointToStringsRight = pointIdToLabelRight.begin();
-        while (j < jointsLeft.size()) {
-            leftOutputPoints.at(j).get()->SetDataSlice(index, jointsLeft.at(j).coeff(0), jointsLeft.at(j).coeff(1),
-                                                       jointsLeft.at(j).coeff(2));
-            rightOutputPoints.at(j).get()->SetDataSlice(index, jointsRight.at(j).coeff(0), jointsRight.at(j).coeff(1),
-                                                        jointsRight.at(j).coeff(2));
-            printAcquisition->SetPoint(pointToStringsRight->first, rightOutputPoints.at(j));
-            printAcquisition->SetPoint(pointToStringsLeft->first, leftOutputPoints.at(j));
+        while (j < fabrikSolveLeft.getJoints().size()) {
+            std::cout << j << std::endl;
+            leftOutputPoints.at(j).second->SetDataSlice(index, fabrikSolveLeft.getJoints().at(j).coeff(0),
+                                                        fabrikSolveLeft.getJoints().at(j).coeff(1),
+                                                        fabrikSolveLeft.getJoints().at(j).coeff(2));
+            rightOutputPoints.at(j).second->SetDataSlice(index, fabrikSolveRight.getJoints().at(j).coeff(0),
+                                                         fabrikSolveRight.getJoints().at(j).coeff(1),
+                                                         fabrikSolveRight.getJoints().at(j).coeff(2));
+
+            printAcquisition->SetPoint(leftOutputPoints.at(j).first, rightOutputPoints.at(j).second);
+            printAcquisition->SetPoint(leftOutputPoints.at(j).first, leftOutputPoints.at(j).second);
             ++j;
-            ++pointToStringsLeft;
-            ++pointToStringsRight;
         }
 
     }
-    return printAcquisition;
 }
+
 
 btk::Acquisition::Pointer writeIkConstrained(btk::Acquisition::Pointer acq) {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
-    float tolerance = 0.01f;
+    float tolerance = 0.00001f;
 
     std::cout << "Choice left" << std::endl;
-    std::map<int, std::string> pointIdToLabelLeft = pickFromAcq(acq);
+    std::vector<std::pair<int, btk::Point::Pointer> > leftPointPicks = pickFromAcq(acq);
+
     std::cout << "Choice right" << std::endl;
-    std::map<int, std::string> pointIdToLabelRight = pickFromAcq(acq);
+    std::vector<std::pair<int, btk::Point::Pointer> > rightPointPicks = pickFromAcq(acq);
 
+    // Create Right Input points vector
+    std::vector<std::pair<int, btk::Point::Pointer> > rightInputPoints;
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator rightPicksIt = rightPointPicks.begin();
+         rightPicksIt != rightPointPicks.end(); ++rightPicksIt) {
+        rightInputPoints.push_back(std::make_pair(rightPicksIt->first, rightPicksIt->second));
+    }
+
+    // Create Left Input points vector
+    std::vector<std::pair<int, btk::Point::Pointer> > leftInputPoints;
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator leftPicksIt = leftPointPicks.begin();
+         leftPicksIt != leftPointPicks.end(); ++leftPicksIt) {
+        leftInputPoints.push_back(std::make_pair(leftPicksIt->first, leftPicksIt->second));
+    }
+
+    // Create output points
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
-    std::vector<btk::Point::Pointer> leftOutputPoints;
-    std::vector<btk::Point::Pointer> rightOutputPoints;
-    char index = 0;
+    std::vector<std::pair<int, btk::Point::Pointer> > leftOutputPoints;
+    std::vector<std::pair<int, btk::Point::Pointer> > rightOutputPoints;
+    leftOutputPoints = leftChain.prepareOutput(acq, leftPointPicks, leftOutputPoints);
+    rightOutputPoints = rightChain.prepareOutput(acq, rightPointPicks, rightOutputPoints);
 
-    for (std::map<int, std::string>::iterator mapLeftIt = pointIdToLabelLeft.begin();
-         mapLeftIt != pointIdToLabelLeft.end(); ++mapLeftIt) {
-        leftOutputPoints.push_back(btk::Point::New(mapLeftIt->second + "Fabrik", acq->GetPointFrameNumber()));
-        leftChain.addToMap(mapLeftIt->second, acq->GetPoint(mapLeftIt->second), true, "L" + index);
-        index++;
-    }
-    std::vector<Eigen::Vector3d> jointsLeft = leftChain.getPositionsPerFrame(0);
-    jointsLeft.resize(3);
     leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
-
-    index = 0;
-    for (std::map<int, std::string>::iterator mapRightIt = pointIdToLabelRight.begin();
-         mapRightIt != pointIdToLabelRight.end(); ++mapRightIt) {
-        rightOutputPoints.push_back(btk::Point::New(mapRightIt->second + "Fabrik", acq->GetPointFrameNumber()));
-        rightChain.addToMap(mapRightIt->second, acq->GetPoint(mapRightIt->second), true, "R" + index);
-        index++;
-    }
-    std::vector<Eigen::Vector3d> jointsRight = rightChain.getPositionsPerFrame(0);
-    jointsRight.resize(3);
     rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
 
-
-    FabrikSolve fabrikSolveRight(jointsRight, rightChain.pointAt(pointIdToLabelRight.rbegin()->second, 1),
-                                 rightChain.pointAt(pointIdToLabelRight.begin()->second, 0),
-                                 rightChain.getSetSumOfAllLenghts(),
-                                 rightChain.getDistances(), tolerance, true);
-    fabrikSolveRight.setAllConeConstraints(45, 45, 45, 45);
-    FabrikSolve fabrikSolveLeft(jointsLeft, leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, 1),
-                                leftChain.pointAt(pointIdToLabelLeft.begin()->second, 0),
-                                leftChain.getSetSumOfAllLenghts(),
-                                leftChain.getDistances(), tolerance, true);
-    fabrikSolveLeft.setAllConeConstraints(45, 45, 45, 45);
+    FabrikSolve fabrikSolveRight(rightChain, tolerance, true);
+    FabrikSolve fabrikSolveLeft(leftChain, tolerance, true);
+    fabrikSolveLeft.setAllConeConstraints(15,15,15,15);
+    fabrikSolveRight.setAllConeConstraints(15,15,15,15);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
 
-        fabrikSolveRight.setTarget(rightChain.pointAt(pointIdToLabelRight.rbegin()->second, index));
+        fabrikSolveRight.setTarget(rightChain.pointAt(rightInputPoints.rbegin()->second, index));
         fabrikSolveRight.solve();
-        jointsRight = fabrikSolveRight.getJoints();
 
-        fabrikSolveLeft.setTarget(leftChain.pointAt(pointIdToLabelLeft.rbegin()->second, index));
+        fabrikSolveLeft.setTarget(leftChain.pointAt(leftInputPoints.rbegin()->second, index));
         fabrikSolveLeft.solve();
-        jointsLeft = fabrikSolveLeft.getJoints();
 
         size_t j = 0;
-        std::map<int, std::string>::iterator pointToStringsLeft = pointIdToLabelLeft.begin();
-        std::map<int, std::string>::iterator pointToStringsRight = pointIdToLabelRight.begin();
-        while (j < jointsLeft.size()) {
-            leftOutputPoints.at(j).get()->SetDataSlice(index, jointsLeft.at(j).coeff(0), jointsLeft.at(j).coeff(1),
-                                                       jointsLeft.at(j).coeff(2));
-            rightOutputPoints.at(j).get()->SetDataSlice(index, jointsRight.at(j).coeff(0), jointsRight.at(j).coeff(1),
-                                                        jointsRight.at(j).coeff(2));
-            printAcquisition->SetPoint(pointToStringsRight->first, rightOutputPoints.at(j));
-            printAcquisition->SetPoint(pointToStringsLeft->first, leftOutputPoints.at(j));
+
+        while (j < fabrikSolveLeft.getJoints().size()) {
+            std::cout << j << std::endl;
+            leftOutputPoints.at(j).second->SetDataSlice(index, fabrikSolveLeft.getJoints().at(j).coeff(0),
+                                                        fabrikSolveLeft.getJoints().at(j).coeff(1),
+                                                        fabrikSolveLeft.getJoints().at(j).coeff(2));
+            rightOutputPoints.at(j).second->SetDataSlice(index, fabrikSolveRight.getJoints().at(j).coeff(0),
+                                                         fabrikSolveRight.getJoints().at(j).coeff(1),
+                                                         fabrikSolveRight.getJoints().at(j).coeff(2));
+
+            printAcquisition->SetPoint(leftOutputPoints.at(j).first, rightOutputPoints.at(j).second);
+            printAcquisition->SetPoint(leftOutputPoints.at(j).first, leftOutputPoints.at(j).second);
             ++j;
-            ++pointToStringsLeft;
-            ++pointToStringsRight;
         }
+
     }
-    return printAcquisition;
 }
 
 int main(int argc, char **argv) {
