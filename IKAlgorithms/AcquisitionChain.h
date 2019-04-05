@@ -36,10 +36,6 @@ public:
 
     std::vector<float> getDistances();
 
-    std::vector<std::pair<int, btk::Point::Pointer> > prepareOutput(btk::Acquisition::Pointer acq,
-                                                                              std::vector<std::pair<int, btk::Point::Pointer> > pointPicks,
-                                                                              std::vector<std::pair<int, btk::Point::Pointer> > outputPoints);
-
 
 private:
     std::vector<std::pair<std::string, float> > distances;

@@ -51,8 +51,8 @@ std::vector<btk::Point::Pointer> AcquisitionChain::getPoints() {
                    [this](const std::pair<std::string, btk::Point::Pointer> &val) -> btk::Point::Pointer {
                        return val.second;
                    });
-    return my_vals;
      */
+    return my_vals;
 }
 
 std::vector<Eigen::Vector3d> AcquisitionChain::getPositionsPerFrame(int frameNumber) {
@@ -125,27 +125,6 @@ std::vector<float> AcquisitionChain::getDistances() {
         distances.push_back(distanceMapIt->second);
     }
     return distances;
-}
-
-std::vector<std::pair<int, btk::Point::Pointer> >
-AcquisitionChain::prepareOutput(btk::Acquisition::Pointer acq,
-                                std::vector<std::pair<int, btk::Point::Pointer> > pointPicks,
-                                std::vector<std::pair<int, btk::Point::Pointer> > outputPoints) {
-
-    size_t index = 0;
-    btk::Point::Pointer point;
-
-    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator pointsIt = pointPicks.begin();
-         pointsIt != pointPicks.end(); ++pointsIt) {
-        std::cout << "Data: " << pointsIt->first << " " << pointsIt->second->GetLabel() << " " << index
-                  << std::endl;
-        point = btk::Point::New(pointsIt->second->GetLabel() + "Fabrik", acq->GetPointFrameNumber());
-        this->addToMap(pointsIt->second->GetLabel(), pointsIt->second, true, "L" + index);
-        outputPoints.push_back(std::make_pair(pointsIt->first, point));
-        index++;
-    }
-
-    return outputPoints;
 }
 
 AcquisitionChain::~AcquisitionChain() {
