@@ -32,7 +32,7 @@ public:
     void chain_backwards();
 
     void chain_forwards();
-    void setAllConeConstraints(const float right, const float left, const float up, const float down);
+    void setAllConeConstraints(const float up, const float down, const float left, const float right);
 
     Eigen::Vector3d
     chain_constrain(Eigen::Vector3d calc, Eigen::Vector3d line, Eigen::Matrix4d direction);
@@ -41,6 +41,7 @@ public:
 
 private:
     std::vector<Eigen::Vector3d> joints;
+    std::vector<std::pair<Eigen::Vector3d, std::vector<double> > > jointAngleConstraintPairs;
     Eigen::Vector3d target;
     Eigen::Vector3d origin;
     Eigen::Vector3d rightvec;

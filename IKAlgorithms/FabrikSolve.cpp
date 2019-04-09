@@ -8,11 +8,11 @@
 
 void FabrikSolve::chain_backwards() {
     std::cout << "Chain backward" << std::endl;
-    std::cout << "Last Joint: [" << joints.at(joints.size() - 1).coeff(0) << ", "
+    std::cout << "Last Joint3D: [" << joints.at(joints.size() - 1).coeff(0) << ", "
               << joints.at(joints.size() - 1).coeff(1) << ", " << joints.at(joints.size() - 1).coeff(2) << "]"
               << std::endl;
     joints.at(joints.size() - 1) = target;
-    std::cout << "Last Joint: [" << joints.at(joints.size() - 1).coeff(0) << ", "
+    std::cout << "Last Joint3D: [" << joints.at(joints.size() - 1).coeff(0) << ", "
               << joints.at(joints.size() - 1).coeff(1) << ", " << joints.at(joints.size() - 1).coeff(2) << "]"
               << std::endl;
     std::cout << "Target: [" << target.coeff(0) << ", " << target.coeff(1) << ", " << target.coeff(2) << "]"
@@ -22,9 +22,9 @@ void FabrikSolve::chain_backwards() {
     Eigen::Vector3d position;
     for (size_t index = joints.size() - 2; index > 0; --index) {
 
-        std::cout << "Joint index+1: [" << joints.at(index + 1).coeff(0) << ", " << joints.at(index + 1).coeff(1)
+        std::cout << "Joint3D index+1: [" << joints.at(index + 1).coeff(0) << ", " << joints.at(index + 1).coeff(1)
                   << ", " << joints.at(index + 1).coeff(2) << "]" << std::endl;
-        std::cout << "Joint index: [" << joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1) << ", "
+        std::cout << "Joint3D index: [" << joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1) << ", "
                   << joints.at(index).coeff(2) << "]" << std::endl;
         r = (joints.at(index + 1) - joints.at(index)).norm();
         std::cout << "r: " << r << std::endl;
@@ -43,11 +43,15 @@ float degToRad(float degrees) {
     return degrees * M_PI / 180;
 }
 
+float radToDeg(float radians) {
+    return radians / M_PI * 180;
+}
+
 void FabrikSolve::chain_forwards() {
     std::cout << "Chain forwards" << std::endl;
     std::cout << "Origin: [" << origin.coeff(0) << ", " << origin.coeff(1) << ", " << origin.coeff(2) << "]"
               << std::endl;
-    std::cout << "First Joint: [" << joints.at(0).coeff(0) << ", " << joints.at(0).coeff(1) << ", "
+    std::cout << "First Joint3D: [" << joints.at(0).coeff(0) << ", " << joints.at(0).coeff(1) << ", "
               << joints.at(0).coeff(2) << "]" << std::endl;
     joints.at(0) = origin;
     Eigen::Vector3d position;
@@ -59,9 +63,9 @@ void FabrikSolve::chain_forwards() {
     float l;
     Eigen::Vector3d t;
     for (size_t index = 0; index < joints.size() - 2; ++index) {
-        std::cout << "Joint index+1: [" << joints.at(index + 1).coeff(0) << ", " << joints.at(index + 1).coeff(1)
+        std::cout << "Joint3D index+1: [" << joints.at(index + 1).coeff(0) << ", " << joints.at(index + 1).coeff(1)
                   << ", " << joints.at(index + 1).coeff(2) << "]" << std::endl;
-        std::cout << "Joint index: [" << joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1) << ", "
+        std::cout << "Joint3D index: [" << joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1) << ", "
                   << joints.at(index).coeff(2) << "]" << std::endl;
         r = (joints.at(index + 1) - joints.at(index)).norm();
         std::cout << "r: " << r << std::endl;
@@ -70,21 +74,40 @@ void FabrikSolve::chain_forwards() {
 
         Eigen::Vector3d lookAt = joints.at(index) + coneVec;
         Eigen::Vector3d coneOrigin = joints.at(index);
-        Eigen::Vector3d objectUpVector(0, 0, 1);
+        Eigen::Vector3d objectUpVector(0, 1, 0);
+
+        std::cout << "Look At: [" << lookAt.coeff(0) << ", " << lookAt.coeff(1) << ", "
+                  << lookAt.coeff(2) << "]" << std::endl;
+        std::cout << "coneOrigin: [" << coneOrigin.coeff(0) << ", " << coneOrigin.coeff(1) << ", "
+                  << coneOrigin.coeff(2) << "]" << std::endl;
+
 
         Eigen::Vector3d zaxis = Eigen::Vector3d(lookAt - coneOrigin).normalized();
+
+        std::cout << "ZAxis: [" << zaxis.coeff(0) << ", " << zaxis.coeff(1) << ", "
+                  << zaxis.coeff(2) << "]" << std::endl;
+
         Eigen::Vector3d xaxis = Eigen::Vector3d(objectUpVector.cross(zaxis)).normalized();
+
+        std::cout << "XAxis: [" << xaxis.coeff(0) << ", " << xaxis.coeff(1) << ", "
+                  << xaxis.coeff(2) << "]" << std::endl;
         Eigen::Vector3d yaxis = Eigen::Vector3d(zaxis.cross(xaxis));
+
+        std::cout << "YAxis: [" << yaxis.coeff(0) << ", " << yaxis.coeff(1) << ", "
+                  << yaxis.coeff(2) << "]" << std::endl;
 
         Eigen::Matrix4d cf;
 
-        cf << xaxis.coeff(0), xaxis.coeff(1), xaxis.coeff(2), 0,
-                yaxis.coeff(0), yaxis.coeff(1), yaxis.coeff(2), 0,
-                zaxis.coeff(0), zaxis.coeff(1), zaxis.coeff(2), 0,
-                0, 0, 0, 1;
+        cf << xaxis.coeff(0), yaxis.coeff(0), zaxis.coeff(0), 0,
+                xaxis.coeff(1), yaxis.coeff(1), zaxis.coeff(1), 0,
+                xaxis.coeff(2), yaxis.coeff(2), zaxis.coeff(2), 0,
+                xaxis.dot(-coneOrigin), yaxis.dot(-coneOrigin), zaxis.dot(-coneOrigin), 1;
 
         position = (1 - l) * joints.at(index) + l * joints.at(index + 1);
         if (isConstrained) {
+            std::vector<double> angleConstraints = this->jointAngleConstraintPairs.at(index).second;
+            setAllConeConstraints(angleConstraints.at(0), angleConstraints.at(1), angleConstraints.at(2),
+                                  angleConstraints.at(3));
             t = chain_constrain(position - joints.at(index), coneVec, cf);
             joints.at(index + 1) = joints.at(index) + t;
         } else {
@@ -102,7 +125,8 @@ void FabrikSolve::chain_forwards() {
 void FabrikSolve::solve() {
     std::cout << "Before Solve" << std::endl;
     for (size_t index = 0; index < joints.size(); ++index) {
-        std::cout << "Joint index: (" << index << ")[" << joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1)
+        std::cout << "Joint3D index: (" << index << ")[" << joints.at(index).coeff(0) << ", "
+                  << joints.at(index).coeff(1)
                   << ", " << joints.at(index).coeff(2) << "]" << std::endl;
     }
     std::cout << "Target: [" << target.coeff(0) << ", " << target.coeff(1) << ", " << target.coeff(2) << "]"
@@ -124,7 +148,6 @@ void FabrikSolve::solve() {
                 joints.at(index + 1) = ((1 - l) * joints.at(index)) + (l * target);
         }
     } else {
-
         bcount = 0;
         dif = (joints.at(joints.size() - 1) - target).norm();
         std::cout << "Dif: " << dif << " vs. tolerance: " << tolerance << std::endl;
@@ -141,7 +164,8 @@ void FabrikSolve::solve() {
     }
     std::cout << "After Solve" << std::endl;
     for (size_t index = 0; index < joints.size(); ++index) {
-        std::cout << "Joint index: (" << index << ")[" << joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1)
+        std::cout << "Joint3D index: (" << index << ")[" << joints.at(index).coeff(0) << ", "
+                  << joints.at(index).coeff(1)
                   << ", " << joints.at(index).coeff(2) << "]" << std::endl;
     }
     std::cout << std::endl;
@@ -183,6 +207,8 @@ FabrikSolve::chain_constrain(Eigen::Vector3d calc, Eigen::Vector3d line, Eigen::
     float xaspect = adjust.dot(rightvec);
     float yaspect = adjust.dot(upvec);
 
+    std::cout << "Left: " << radToDeg(this->left)<< " Right: " << radToDeg(this->right) << " Up: " << radToDeg(this->up) << " Down: " << radToDeg(this->down) << std::endl;
+    std::cout << "Joint angle Constraint Pairs: " << jointAngleConstraintPairs.size() << std::endl;
     float left = -(proj.norm() * std::tan(this->left));
     float right = proj.norm() * std::tan(this->right);
     float up = proj.norm() * std::tan(this->up);
@@ -213,29 +239,30 @@ void FabrikSolve::calcConeDirection(Eigen::Vector3d calc, Eigen::Matrix4d cf) {
 
     Eigen::Vector3d jointToTarget = calc;
 
-    Eigen::Vector3d upVector = Eigen::Vector3d(cf.coeff(0, 2), cf.coeff(1, 2), cf.coeff(2, 2));
-    Eigen::Vector3d downVector = Eigen::Vector3d(-cf.coeff(0, 2), -cf.coeff(1, 2), -cf.coeff(2, 2));
-    Eigen::Vector3d rightVector = Eigen::Vector3d(cf.coeff(0, 0), cf.coeff(1, 0), cf.coeff(2, 0));
-    Eigen::Vector3d leftVector = Eigen::Vector3d(-cf.coeff(0, 0), -cf.coeff(1, 0), -cf.coeff(2, 0));
+    Eigen::Vector3d upVector = Eigen::Vector3d(cf.coeff(2, 0), cf.coeff(2, 1), cf.coeff(2, 2));
+    Eigen::Vector3d downVector = Eigen::Vector3d(-cf.coeff(2, 0), -cf.coeff(2, 1), -cf.coeff(2, 2));
+    Eigen::Vector3d rightVector = Eigen::Vector3d(cf.coeff(0, 0), cf.coeff(0, 1), cf.coeff(0, 2));
+    Eigen::Vector3d leftVector = Eigen::Vector3d(-cf.coeff(0, 0), -cf.coeff(0, 1), -cf.coeff(0, 2));
 
 
     std::cout << "Direction Vector to target:("
               << jointToTarget.coeff(0) << ", " << jointToTarget.coeff(1) << ", " << jointToTarget.coeff(2) << ")"
               << std::endl;
-    if ((upVector - jointToTarget).norm() > (downVector - jointToTarget).norm()) {
+    if ((upVector - jointToTarget).norm() < (downVector - jointToTarget).norm()) {
         upvec = upVector;
-    } else if ((upVector - jointToTarget).norm() < (downVector - jointToTarget).norm()) {
-        upvec = downVector;
         std::cout << "Up" << std::endl;
+    } else if ((upVector - jointToTarget).norm() > (downVector - jointToTarget).norm()) {
+        upvec = downVector;
+        std::cout << "Down" << std::endl;
     } else {
         std::cout << "Fuck Deadlock" << std::endl;
     }
     std::cout << "x: " << upvec.coeff(0) << " y: " << upvec.coeff(1) << " z: " << upvec.coeff(2) << std::endl;
 
-    if ((leftVector - jointToTarget).norm() > (rightVector - jointToTarget).norm()) {
+    if ((leftVector - jointToTarget).norm() < (rightVector - jointToTarget).norm()) {
         std::cout << "Left" << std::endl;
         rightvec = leftVector;
-    } else if ((leftVector - jointToTarget).norm() < (rightVector - jointToTarget).norm()) {
+    } else if ((leftVector - jointToTarget).norm() > (rightVector - jointToTarget).norm()) {
         std::cout << "Right" << std::endl;
         rightvec = rightVector;
     } else {
@@ -244,11 +271,11 @@ void FabrikSolve::calcConeDirection(Eigen::Vector3d calc, Eigen::Matrix4d cf) {
     std::cout << "x: " << rightvec.coeff(0) << " y: " << rightvec.coeff(1) << " z: " << rightvec.coeff(2) << std::endl;
 }
 
-void FabrikSolve::setAllConeConstraints(const float right, const float left, const float up, const float down) {
-    this->right = degToRad(right);
-    this->left = degToRad(left);
+void FabrikSolve::setAllConeConstraints(const float up, const float down, const float left, const float right) {
     this->up = degToRad(up);
     this->down = degToRad(down);
+    this->left = degToRad(left);
+    this->right = degToRad(right);
 }
 
 FabrikSolve::FabrikSolve(std::vector<Eigen::Vector3d> joints, Eigen::Vector3d target, Eigen::Vector3d origin,
@@ -265,6 +292,9 @@ FabrikSolve::FabrikSolve(std::vector<Eigen::Vector3d> joints, Eigen::Vector3d ta
 }
 
 FabrikSolve::FabrikSolve(AcquisitionChain chain, float tolerance, bool isConstrained) {
+    if (isConstrained) {
+        this->jointAngleConstraintPairs = chain.getJointsWithAngleConstraints();
+    }
     this->joints = chain.getPositionsPerFrame(0);
     this->target = *chain.getPositionsPerFrame(0).rbegin();
     this->origin = *chain.getPositionsPerFrame(0).begin();
@@ -273,5 +303,6 @@ FabrikSolve::FabrikSolve(AcquisitionChain chain, float tolerance, bool isConstra
     this->totalLength = chain.getSetSumOfAllLenghts();
     this->isConstrained = isConstrained;
 
+    std::cout << "Constructor is executed\n" << std::endl;
 }
 

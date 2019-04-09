@@ -10,6 +10,6 @@ FIND_PACKAGE(BTK REQUIRED)
 INCLUDE(${BTK_USE_FILE})
 INCLUDE_DIRECTORIES(${EIGEN2_DIR}/Eigen/src)
 
-SET(IKAlgorithms_SRCS main.cpp FabrikSolve.cpp FabrikSolve.h FabrikDoubleChainSolve.cpp FabrikDoubleChainSolve.h AcquisitionChain.cpp AcquisitionChain.h)
+SET(IKAlgorithms_SRCS main.cpp FabrikSolve.cpp FabrikSolve.h FabrikDoubleChainSolve.cpp FabrikDoubleChainSolve.h AcquisitionChain.cpp AcquisitionChain.h Joint3D.cpp Joint3D.h)
 ADD_EXECUTABLE(IKAlgorithms ${IKAlgorithms_SRCS})
 TARGET_LINK_LIBRARIES(IKAlgorithms BTKIO)

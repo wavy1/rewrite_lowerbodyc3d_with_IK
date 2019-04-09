@@ -24,6 +24,9 @@ public:
     void
     addToMap(std::string str, btk::Point::Pointer acqPoint, bool includeDebuggable = false, std::string debugStr = "");
 
+    void
+    addPointWithConstraints(std::pair<btk::Point::Pointer, std::vector<double> > pointWithAngles);
+
     std::vector<Eigen::Vector3d> getPositionsPerFrame(int frameNumber);
 
     std::vector<btk::Point::Pointer> getPoints();
@@ -36,12 +39,15 @@ public:
 
     std::vector<float> getDistances();
 
+    std::vector<std::pair< Eigen::Vector3d, std::vector<double> > > getJointsWithAngleConstraints();
+
 
 private:
     std::vector<std::pair<std::string, float> > distances;
     float sumOfAllLenghts;
     std::vector<std::pair<std::string, btk::Point::Pointer> > stringToPointMap;
     std::vector<std::pair<std::string, std::pair<std::string, btk::Point::Pointer> > > stringToPointMapDebuggable;
+    std::vector<std::pair< btk::Point::Pointer, std::vector<double> > > pointWithAngleConstraints;
 };
 
 

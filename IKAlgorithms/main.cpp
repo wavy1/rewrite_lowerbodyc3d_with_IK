@@ -90,7 +90,28 @@ void prepareOutput(btk::Acquisition::Pointer acq, AcquisitionChain &acquisitionC
         outputPoints.push_back(std::make_pair(pointsIt->first, point));
         index++;
     }
+}
 
+void prepareOutputWithConstraints(btk::Acquisition::Pointer acq, AcquisitionChain &acquisitionChain,
+                                  std::vector<std::pair<int, btk::Point::Pointer> > &pointPicks,
+                                  std::map<int, std::vector<double> > pointConstraintsMap,
+                                  std::vector<std::pair<int, btk::Point::Pointer> > &outputPoints) {
+    size_t index = 0;
+    btk::Point::Pointer point;
+
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator pointsIt = pointPicks.begin();
+         pointsIt != pointPicks.end(); ++pointsIt) {
+        std::cout << "Data: " << pointsIt->first << " " << pointsIt->second->GetLabel() << " " << index
+                  << std::endl;
+
+        point = pointsIt->second->Clone();
+        point->SetLabel(pointsIt->second->GetLabel() + " Fabrik");
+        acquisitionChain.addPointWithConstraints(
+                std::make_pair(pointsIt->second, pointConstraintsMap.at(pointsIt->first)));
+        acquisitionChain.addToMap(pointsIt->second->GetLabel(), point, true, "L" + index);
+        outputPoints.push_back(std::make_pair(pointsIt->first, point));
+        index++;
+    }
 }
 
 void printPointsWithLabel(btk::Acquisition::Pointer acq, std::string labelStr) {
@@ -190,7 +211,8 @@ std::pair<std::vector<std::pair<std::string, float> >, float> calculateDistances
     return std::make_pair(distances, sumOfAllLenghts);
 }
 
-std::vector<std::pair<int, btk::Point::Pointer> > pickFromAcq(const btk::Acquisition::Pointer acq) {
+std::vector<std::pair<int, btk::Point::Pointer> >
+pickFromAcq(const btk::Acquisition::Pointer acq) {
     std::vector<std::pair<int, btk::Point::Pointer> > idsAndPoints;
     std::vector<int> choices;
 
@@ -202,6 +224,7 @@ std::vector<std::pair<int, btk::Point::Pointer> > pickFromAcq(const btk::Acquisi
     }
 
     int choice = 0;
+
     std::cout << "Pick Points by Number to build chain (pick -1 to complete your choice, repetitions not possible)"
               << std::endl;
     std::cout << "The first pick is the origin, the last pick is the target" << std::endl;
@@ -210,12 +233,12 @@ std::vector<std::pair<int, btk::Point::Pointer> > pickFromAcq(const btk::Acquisi
         std::cout << "> ";
         std::cin >> choice;
         if (choice == -1) break;
-        std::cout << "Added " << choice << " to the memory" << std::endl;
+        std::cout << "Added " << choice << " to the chain" << std::endl;
         choices.push_back(choice);
     }
 
     index = 0;
-
+    std::vector<double> constraintsVector;
     for (btk::Acquisition::PointIterator acqIt = acq->BeginPoint(); acqIt != acq->EndPoint(); ++acqIt) {
 
         for (std::vector<int>::iterator idChoicesIt = choices.begin(); idChoicesIt != choices.end(); ++idChoicesIt) {
@@ -230,6 +253,38 @@ std::vector<std::pair<int, btk::Point::Pointer> > pickFromAcq(const btk::Acquisi
     }
 
     return idsAndPoints;
+}
+
+std::map<int, std::vector<double> >
+pickConstraintsForVector(std::vector<std::pair<int, btk::Point::Pointer> > idPointsPairsVector) {
+    std::map<int, std::vector<double> > choiceConstraintsMap;
+
+    double angleConstraints[4] = {90, 90, 90, 90};
+    std::vector<double> constraintsVector;
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator idPointPairsVectorIterator = idPointsPairsVector.begin();
+         idPointPairsVectorIterator != idPointsPairsVector.end(); ++idPointPairsVectorIterator) {
+        std::cout << "Enter upper angle constraint value for " << idPointPairsVectorIterator->second->GetLabel()
+                  << " : "
+                  << std::endl;
+        std::cin >> angleConstraints[0];
+        std::cout << "Enter lower angle constraint value for " << idPointPairsVectorIterator->second->GetLabel()
+                  << " : "
+                  << std::endl;
+        std::cin >> angleConstraints[1];
+        std::cout << "Enter left angle constraint value for " << idPointPairsVectorIterator->second->GetLabel() << " : "
+                  << std::endl;
+        std::cin >> angleConstraints[2];
+        std::cout << "Enter right angle constraint value for " << idPointPairsVectorIterator->second->GetLabel()
+                  << " : "
+                  << std::endl;
+        std::cin >> angleConstraints[3];
+        std::cout << "Up: " << angleConstraints[0] << "°\nDown: " << angleConstraints[1] << "°\nLeft: "
+                  << angleConstraints[2] << "°\nRight: " << angleConstraints[3] << "°" << std::endl;
+        constraintsVector = std::vector<double>(angleConstraints, angleConstraints + 4);
+        choiceConstraintsMap[idPointPairsVectorIterator->first] = constraintsVector;
+    }
+
+    return choiceConstraintsMap;
 }
 
 std::vector<std::pair<int, btk::Point::Pointer> >
@@ -253,25 +308,25 @@ testDataFromAcqBtk(btk::Acquisition::Pointer acq, std::vector<int> choices) {
     return pointsStrs;
 }
 
+std::map<int, std::vector<double> >
+testConstraintsData(std::vector<std::pair<int, btk::Point::Pointer> > idsPointsPairsVector) {
+    std::map<int, std::vector<double> > idAnglesMap;
+    double angleConstraintsArray[4] = {30, 30, 2, 2};
+    std::vector<double> angleConstraints(angleConstraintsArray, angleConstraintsArray + 4);
+    float index = 0.0;
+    std::cout << "Size of Point pairs: " << idsPointsPairsVector.size() << std::endl;
 
-std::map<int, std::string> testDataFromAcq(btk::Acquisition::Pointer acq, std::vector<int> choices) {
-    int index = 0;
-    std::map<int, std::string> pointStrs;
-
-    for (btk::Acquisition::PointIterator peter = acq->BeginPoint(); peter != acq->EndPoint(); ++peter) {
-
-        for (std::vector<int>::iterator intChoiceIt = choices.begin(); intChoiceIt != choices.end(); ++intChoiceIt) {
-            if (*intChoiceIt == index) {
-                std::cout << "Added " << *intChoiceIt << " to " << peter->get()->GetLabel() << " to the map"
-                          << std::endl;
-                pointStrs.insert(std::make_pair(*intChoiceIt, peter->get()->GetLabel()));
-            }
-        }
-
-        index++;
+    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator idsPointsPairsIterator = idsPointsPairsVector.begin();
+         idsPointsPairsIterator != idsPointsPairsVector.end(); ++idsPointsPairsIterator) {
+        std::cout << "Index for Constraints " << index << std::endl;
+        angleConstraints.at(0) += index;
+        angleConstraints.at(1) += index;
+        angleConstraints.at(2) += index;
+        angleConstraints.at(3) += index;
+        idAnglesMap[idsPointsPairsIterator->first] = angleConstraints;
+        index += 1.0;
     }
-
-    return pointStrs;
+    return idAnglesMap;
 }
 
 btk::Point::Pointer createPointOriginBetweenTwoPoints(btk::Acquisition::Pointer acq, btk::Point::Pointer leftPoint,
@@ -303,6 +358,7 @@ btk::Acquisition::Pointer writeIkUnconstrainedWithOrigin(const btk::Acquisition:
     std::cout << "Choice left" << std::endl;
     int testPicksLeft[4] = {0, 4, 10, 11};
     std::vector<int> testPicksLeftVec(testPicksLeft, testPicksLeft + 4);
+    std::map<int, std::vector<double> > empty;
     std::vector<std::pair<int, btk::Point::Pointer> > leftPointPicks =
             isTestRun ? testDataFromAcqBtk(acq, testPicksLeftVec) : pickFromAcq(acq);
 
@@ -419,17 +475,25 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
     float tolerance = 0.00001f;
 
     std::cout << "Choice left" << std::endl;
+    // Hard coded values for testdata frontal Jumping jacks
     int testPicksLeft[4] = {0, 4, 10, 11};
     std::vector<int> testPicksLeftVec(testPicksLeft, testPicksLeft + 4);
+    std::map<int, std::vector<double> > jointIdsAngleConstraintsLeftMap;
     std::vector<std::pair<int, btk::Point::Pointer> > leftPointPicks =
             isTestRun ? testDataFromAcqBtk(acq, testPicksLeftVec) : pickFromAcq(acq);
+    jointIdsAngleConstraintsLeftMap = isTestRun ? testConstraintsData(leftPointPicks) : pickConstraintsForVector(
+            leftPointPicks);
 
 
     std::cout << "Choice right" << std::endl;
+    // Hard coded values for testdata frontal Jumping jacks
     int testPicksRight[4] = {1, 12, 18, 19};
     std::vector<int> testDataPicksRightVec(testPicksRight, testPicksRight + 4);
+    std::map<int, std::vector<double> > jointIdsAngleConstraintsRightMap;
     std::vector<std::pair<int, btk::Point::Pointer> > rightPointPicks =
             isTestRun ? testDataFromAcqBtk(acq, testDataPicksRightVec) : pickFromAcq(acq);
+    jointIdsAngleConstraintsRightMap = isTestRun ? testConstraintsData(rightPointPicks) : (pickConstraintsForVector(
+            rightPointPicks));
 
 
     // Create Right Input points vector
@@ -450,8 +514,8 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
     std::vector<std::pair<int, btk::Point::Pointer> > leftOutputPoints;
     std::vector<std::pair<int, btk::Point::Pointer> > rightOutputPoints;
-    prepareOutput(acq, leftChain, leftPointPicks, leftOutputPoints);
-    prepareOutput(acq, rightChain, rightPointPicks, rightOutputPoints);
+    prepareOutputWithConstraints(acq, leftChain, leftPointPicks, jointIdsAngleConstraintsLeftMap, leftOutputPoints);
+    prepareOutputWithConstraints(acq, rightChain, rightPointPicks, jointIdsAngleConstraintsRightMap, rightOutputPoints);
 
     leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
     rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
@@ -460,8 +524,6 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
             fabrikSolveRight(rightChain, tolerance, true);
     FabrikSolve
             fabrikSolveLeft(leftChain, tolerance, true);
-    fabrikSolveLeft.setAllConeConstraints(45, 45, 45, 45);
-    fabrikSolveRight.setAllConeConstraints(45, 45, 45, 45);
 
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
@@ -496,12 +558,13 @@ int main(int argc, char **argv) {
     }
     std::string inputStr = "";
     std::string outputStr = "";
-    if(argc > 2){
+    if (argc > 2) {
         inputStr.append(argv[1]);
         outputStr.append(argv[2]);
     }
 
-    if (argc >= 3 && inputStr.find(c3dFormatStr) != std::string::npos && outputStr.find(c3dFormatStr) != std::string::npos) {
+    if (argc >= 3 && inputStr.find(c3dFormatStr) != std::string::npos &&
+        outputStr.find(c3dFormatStr) != std::string::npos) {
         btk::Acquisition::Pointer acq = readAcquisition(argv[1]);
         if (optionalArguments.find(unconstrainedStr) != std::string::npos) {
             if (optionalArguments.find(staticMiddleRegexStr) != std::string::npos) {
@@ -547,13 +610,15 @@ int main(int argc, char **argv) {
                 }
             } else {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
-                    std::cout << "[WIP] Test constraint " << std::endl;
+                    std::cout << "Test constraint " << std::endl;
                     btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, true);
                     writeAcquisition(ikAcq, argv[2]);
-                    std::cout << "[WIP] Test constraint complete" << std::endl;
+                    std::cout << "Test constraint complete" << std::endl;
                 } else {
-                    std::cout << "[WIP] Just constrained" << std::endl;
+                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq);
+                    writeAcquisition(ikAcq, argv[2]);
+                    std::cout << "Just constrained" << std::endl;
                 }
             }
         } else if (optionalArguments.find(testRegexStr) != std::string::npos) {
@@ -564,10 +629,14 @@ int main(int argc, char **argv) {
             writeAcquisition(ikAcq, argv[2]);
             std::cout << "unconstrained test complete" << std::endl;
         } else {
-            std::cout << "usage: ./IKAlgorithms <inputC3D> <outputC3D> [-s for origin middle] [-u for unconstrained xor -c for constrained] [-t for test data]" << std::endl << std::endl;
+            std::cout
+                    << "usage: ./IKAlgorithms <inputC3D> <outputC3D> [-s for origin middle] [-u for unconstrained xor -c for constrained] [-t for test data]"
+                    << std::endl << std::endl;
         }
     } else {
-        std::cout << "usage: ./IKAlgorithms <inputC3D> <outputC3D> [-s for origin middle] [-u for unconstrained xor -c for constrained] [-t for test data]" << std::endl << std::endl;
+        std::cout
+                << "usage: ./IKAlgorithms <inputC3D> <outputC3D> [-s for origin middle] [-u for unconstrained xor -c for constrained] [-t for test data]"
+                << std::endl << std::endl;
     }
     return 0;
 };

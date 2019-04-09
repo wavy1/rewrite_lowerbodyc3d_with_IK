@@ -127,6 +127,24 @@ std::vector<float> AcquisitionChain::getDistances() {
     return distances;
 }
 
+void AcquisitionChain::addPointWithConstraints(std::pair<btk::Point::Pointer, std::vector<double> > pointWithAngles) {
+    this->pointWithAngleConstraints.push_back(pointWithAngles);
+}
+
+std::vector<std::pair<Eigen::Vector3d, std::vector<double> > > AcquisitionChain::getJointsWithAngleConstraints() {
+    std::vector<std::pair<Eigen::Vector3d, std::vector<double> > > positionsWithAngleConstraints;
+    std::vector<std::pair<btk::Point::Pointer, std::vector<double> > > points = this->pointWithAngleConstraints;
+    for (std::vector<std::pair<btk::Point::Pointer, std::vector<double> > >::iterator pointsIterator = points.begin();
+         pointsIterator != points.end(); ++pointsIterator) {
+        std::cout << pointsIterator->first->GetLabel() << ": " << " Up: " << pointsIterator->second.at(0) << " Down: " <<
+        pointsIterator->second.at(1) << " Left " << pointsIterator->second.at(2) << " Right "
+                                     << pointsIterator->second.at(3) << std::endl;
+        positionsWithAngleConstraints.push_back(
+                std::make_pair(pointAt(pointsIterator->first, 0), pointsIterator->second));
+    }
+    return positionsWithAngleConstraints;
+}
+
 AcquisitionChain::~AcquisitionChain() {
     std::cout << "Destructor for Chain has been executed\n" << std::endl;
 }
