@@ -5,7 +5,10 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <algorithm>
+#include <iterator>
 #include <tr1/regex>
+#include <sstream>
 #include "FabrikSolve.h"
 #include "AcquisitionChain.h"
 
@@ -308,27 +311,6 @@ testDataFromAcqBtk(btk::Acquisition::Pointer acq, std::vector<int> choices) {
     return pointsStrs;
 }
 
-std::map<int, std::vector<double> >
-testConstraintsData(std::vector<std::pair<int, btk::Point::Pointer> > idsPointsPairsVector) {
-    std::map<int, std::vector<double> > idAnglesMap;
-    double angleConstraintsArray[4] = {30, 30, 2, 2};
-    std::vector<double> angleConstraints(angleConstraintsArray, angleConstraintsArray + 4);
-    float index = 0.0;
-    std::cout << "Size of Point pairs: " << idsPointsPairsVector.size() << std::endl;
-
-    for (std::vector<std::pair<int, btk::Point::Pointer> >::iterator idsPointsPairsIterator = idsPointsPairsVector.begin();
-         idsPointsPairsIterator != idsPointsPairsVector.end(); ++idsPointsPairsIterator) {
-        std::cout << "Index for Constraints " << index << std::endl;
-        angleConstraints.at(0) += index;
-        angleConstraints.at(1) += index;
-        angleConstraints.at(2) += index;
-        angleConstraints.at(3) += index;
-        idAnglesMap[idsPointsPairsIterator->first] = angleConstraints;
-        index += 1.0;
-    }
-    return idAnglesMap;
-}
-
 btk::Point::Pointer createPointOriginBetweenTwoPoints(btk::Acquisition::Pointer acq, btk::Point::Pointer leftPoint,
                                                       btk::Point::Pointer rightPoint, std::string originIdentifierStr) {
 
@@ -420,23 +402,21 @@ btk::Acquisition::Pointer writeIkUnconstrainedWithOrigin(const btk::Acquisition:
 }
 
 
-btk::Acquisition::Pointer writeIkUnconstrained(const btk::Acquisition::Pointer acq, bool isTestRun = false) {
+btk::Acquisition::Pointer
+writeIkUnconstrained(const btk::Acquisition::Pointer acq, std::vector<int> commandLinePicksRight,
+                     std::vector<int> commandLinePicksLeft) {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
     float tolerance = 0.00001f;
 
     std::cout << "Choice left" << std::endl;
-    int testPicksLeft[4] = {0, 4, 10, 11};
-    std::vector<int> testPicksLeftVec(testPicksLeft, testPicksLeft + 4);
     std::vector<std::pair<int, btk::Point::Pointer> > leftInputPoints =
-            isTestRun ? testDataFromAcqBtk(acq, testPicksLeftVec) : pickFromAcq(acq);
+            commandLinePicksLeft.size() != 0 ? testDataFromAcqBtk(acq, commandLinePicksLeft) : pickFromAcq(acq);
 
 
     std::cout << "Choice right" << std::endl;
-    int testPicksRight[4] = {1, 12, 18, 19};
-    std::vector<int> testDataPicksRightVec(testPicksRight, testPicksRight + 4);
     std::vector<std::pair<int, btk::Point::Pointer> > rightInputPoints =
-            isTestRun ? testDataFromAcqBtk(acq, testDataPicksRightVec) : pickFromAcq(acq);
+            commandLinePicksRight.size() != 0 ? testDataFromAcqBtk(acq, commandLinePicksRight) : pickFromAcq(acq);
 
     // Create output points
     btk::Acquisition::Pointer printAcquisition = acq->Clone();
@@ -469,31 +449,40 @@ btk::Acquisition::Pointer writeIkUnconstrained(const btk::Acquisition::Pointer a
 }
 
 
-btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq, bool isTestRun = false) {
+btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq,
+                                             std::map<int, std::vector<double> > leftPicksAndConstraints,
+                                             std::map<int, std::vector<double> > rightPicksAndConstraints) {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
     float tolerance = 0.00001f;
 
     std::cout << "Choice left" << std::endl;
     // Hard coded values for testdata frontal Jumping jacks
-    int testPicksLeft[4] = {0, 4, 10, 11};
-    std::vector<int> testPicksLeftVec(testPicksLeft, testPicksLeft + 4);
+    std::vector<int> testPicksLeftVec;
+    for (std::map<int, std::vector<double> >::iterator leftPicksAndConstraintsIterator = leftPicksAndConstraints.begin();
+         leftPicksAndConstraintsIterator != leftPicksAndConstraints.end(); ++leftPicksAndConstraintsIterator) {
+        testPicksLeftVec.push_back(leftPicksAndConstraintsIterator->first);
+    }
+
+
     std::map<int, std::vector<double> > jointIdsAngleConstraintsLeftMap;
     std::vector<std::pair<int, btk::Point::Pointer> > leftPointPicks =
-            isTestRun ? testDataFromAcqBtk(acq, testPicksLeftVec) : pickFromAcq(acq);
-    jointIdsAngleConstraintsLeftMap = isTestRun ? testConstraintsData(leftPointPicks) : pickConstraintsForVector(
-            leftPointPicks);
+            testPicksLeftVec.empty() ? pickFromAcq(acq) : testDataFromAcqBtk(acq, testPicksLeftVec);
+    jointIdsAngleConstraintsLeftMap = leftPicksAndConstraints.empty() ? pickConstraintsForVector(
+            leftPointPicks) : leftPicksAndConstraints;
 
 
     std::cout << "Choice right" << std::endl;
-    // Hard coded values for testdata frontal Jumping jacks
-    int testPicksRight[4] = {1, 12, 18, 19};
-    std::vector<int> testDataPicksRightVec(testPicksRight, testPicksRight + 4);
+    std::vector<int> testPicksRightVec;
+    for (std::map<int, std::vector<double> >::iterator rightPicksAndConstraintsIterator = rightPicksAndConstraints.begin();
+         rightPicksAndConstraintsIterator != rightPicksAndConstraints.end(); ++rightPicksAndConstraintsIterator) {
+        testPicksRightVec.push_back(rightPicksAndConstraintsIterator->first);
+    }
     std::map<int, std::vector<double> > jointIdsAngleConstraintsRightMap;
     std::vector<std::pair<int, btk::Point::Pointer> > rightPointPicks =
-            isTestRun ? testDataFromAcqBtk(acq, testDataPicksRightVec) : pickFromAcq(acq);
-    jointIdsAngleConstraintsRightMap = isTestRun ? testConstraintsData(rightPointPicks) : (pickConstraintsForVector(
-            rightPointPicks));
+            testPicksRightVec.empty() ? pickFromAcq(acq) : testDataFromAcqBtk(acq, testPicksRightVec);
+    jointIdsAngleConstraintsRightMap = rightPicksAndConstraints.empty() ? (pickConstraintsForVector(rightPointPicks))
+                                                                        : rightPicksAndConstraints;
 
 
     // Create Right Input points vector
@@ -544,6 +533,110 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
     return printAcquisition;
 }
 
+void split(const std::string &s, const std::string &sep, std::vector<std::string> &v) {
+    typedef std::string::const_iterator iter;
+    iter b = s.begin(), e = s.end(), i;
+    iter sep_b = sep.begin(), sep_e = sep.end();
+
+    while (b != e) {
+        i = std::search(b, e, sep_b, sep_e);
+
+        if (b == e) {
+            v.push_back(std::string(b, e));
+            break;
+        } else if (i == b) {
+            b = i + sep.length();
+        } else {
+            v.push_back(std::string(b, i));
+            b = i;
+        }
+    }
+}
+
+template<typename Out>
+void split(const std::string &s, char delim, Out result) {
+    std::stringstream ss(s);
+    std::string item;
+    while (std::getline(ss, item, delim)) {
+        *(result++) = item;
+    }
+}
+
+std::vector<std::string> split(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    split(s, delim, std::back_inserter(elems));
+    return elems;
+}
+
+std::vector<int> getCommandLinePick(const std::string &inputString, const std::string &openDelimiter,
+                                    const char &delimiterInbetweenNumbers, const std::string &closingDelim) {
+
+    std::size_t foundPos = inputString.find(openDelimiter);
+    std::string afterFoundPosToEnd = inputString.substr(foundPos + openDelimiter.size());
+    std::size_t endPos = afterFoundPosToEnd.find(closingDelim);
+    std::cout << inputString.substr(foundPos + openDelimiter.size(), endPos) << std::endl;
+    std::string picksStr = inputString.substr(foundPos + openDelimiter.size(), endPos);
+
+
+    std::vector<std::string> picksStringVector = split(picksStr, delimiterInbetweenNumbers);
+    std::vector<int> picksIntegerVector;
+    for (std::vector<std::string>::iterator picksStringVectorIt = picksStringVector.begin();
+         picksStringVectorIt != picksStringVector.end(); ++picksStringVectorIt) {
+        std::stringstream iss(*picksStringVectorIt);
+        int number;
+        iss >> number;
+        picksIntegerVector.push_back(number);
+    }
+    return picksIntegerVector;
+}
+
+std::map<int, std::vector<double> >
+getCommandLinePickAndConstraint(const std::string &inputString, const std::string &openDelimiter,
+                                const char &delimiterInbetweenConstraints, const std::string &closingDelim,
+                                const char &delimiterBetweenids, const std::string &endOfConstraint,
+                                const std::string idToConstraintsPointerString) {
+
+    std::map<int, std::vector<double> > picksIntegerVector;
+    std::vector<double> constraintsVector;
+
+    std::size_t foundPos = inputString.find(openDelimiter);
+    std::string afterFoundPosToEnd = inputString.substr(foundPos + openDelimiter.size());
+    std::size_t endPos = afterFoundPosToEnd.find(closingDelim);
+
+    std::cout << inputString.substr(foundPos + openDelimiter.size(), endPos) << std::endl;
+    std::string picksStr = inputString.substr(foundPos + openDelimiter.size(), endPos);
+
+    std::vector<std::string> picksConstraintVectorString = split(picksStr, delimiterBetweenids);
+
+    for (std::vector<std::string>::iterator picksConstraintVectorStringIterator = picksConstraintVectorString.begin();
+         picksConstraintVectorStringIterator !=
+         picksConstraintVectorString.end(); ++picksConstraintVectorStringIterator) {
+        foundPos = picksConstraintVectorStringIterator->find(idToConstraintsPointerString);
+        std::stringstream iss(picksConstraintVectorStringIterator->substr(0, foundPos));
+        int number;
+        iss >> number;
+
+        foundPos = picksConstraintVectorStringIterator->find(idToConstraintsPointerString);
+        afterFoundPosToEnd = inputString.substr(foundPos + idToConstraintsPointerString.size());
+        endPos = afterFoundPosToEnd.find(endOfConstraint);
+
+        picksStr = picksConstraintVectorStringIterator->substr(foundPos + idToConstraintsPointerString.size(), endPos);
+        std::vector<std::string> constraintsStr = split(picksStr, delimiterInbetweenConstraints);
+
+        for (std::vector<std::string>::iterator constraintVectorIterator = constraintsStr.begin();
+             constraintVectorIterator != constraintsStr.end(); ++constraintVectorIterator) {
+            std::stringstream fss(*constraintVectorIterator);
+            double angle;
+            fss >> angle;
+            constraintsVector.push_back(angle);
+        }
+        picksIntegerVector[number] = constraintsVector;
+        constraintsVector.clear();
+    }
+
+    return picksIntegerVector;
+}
+
 int main(int argc, char **argv) {
 
     std::string optionalArguments = "";
@@ -562,6 +655,34 @@ int main(int argc, char **argv) {
         inputStr.append(argv[1]);
         outputStr.append(argv[2]);
     }
+
+    std::cout << "Number args" << argc << std::endl;
+
+    for (size_t i = 0; i < argc; ++i) {
+        std::cout << argv[i] << std::endl;
+    }
+
+    char jointIdDelimiter = ';';
+    char constraintsDelimiter = ',';
+    std::string constraintsCloseDelimiter = "]";
+    std::string constraintsBeginSequence = "->[";
+    std::string closingDelim = "}";
+    std::string rightJointsAndConstraintsOpen = "joints-constraints-right={";
+    std::string leftJointsAndConstraintsOpen = "joints-constraints-left={";
+    std::string leftDelimOpen = "joints-left={";
+    std::string rightDelimOpen = "joints-right={";
+
+    std::vector<int> leftPicksInt = getCommandLinePick(optionalArguments, leftDelimOpen, jointIdDelimiter,
+                                                       closingDelim);
+    std::vector<int> rightPicksInt = getCommandLinePick(optionalArguments, rightDelimOpen, jointIdDelimiter,
+                                                        closingDelim);
+
+    std::map<int, std::vector<double> > leftPicksAndConstraints = getCommandLinePickAndConstraint(
+            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+            constraintsCloseDelimiter, constraintsBeginSequence);
+    std::map<int, std::vector<double> > rightPicksAndConstraints = getCommandLinePickAndConstraint(
+            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+            constraintsCloseDelimiter, constraintsBeginSequence);
 
     if (argc >= 3 && inputStr.find(c3dFormatStr) != std::string::npos &&
         outputStr.find(c3dFormatStr) != std::string::npos) {
@@ -584,12 +705,12 @@ int main(int argc, char **argv) {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "unconstrained test" << std::endl;
                     btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, true);
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "unconstrained test complete" << std::endl;
                 } else {
                     std::cout << "unconstrained" << std::endl;
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq);
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "unconstrained complete" << std::endl;
                 }
@@ -599,12 +720,15 @@ int main(int argc, char **argv) {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "[WIP] Static middle constrained test" << std::endl;
                     btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
-                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, true);
+                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
+                                                                         rightPicksAndConstraints);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "[WIP] Static middle constrained complete" << std::endl;
                 } else {
+
                     std::cout << "[WIP] Static middle constrained" << std::endl;
-                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq);
+                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
+                                                                         rightPicksAndConstraints);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "[WIP] Static middle constrained complete" << std::endl;
                 }
@@ -612,11 +736,13 @@ int main(int argc, char **argv) {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "Test constraint " << std::endl;
                     btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
-                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, true);
+                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
+                                                                         rightPicksAndConstraints);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "Test constraint complete" << std::endl;
                 } else {
-                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq);
+                    btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
+                                                                         rightPicksAndConstraints);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "Just constrained" << std::endl;
                 }
@@ -625,7 +751,7 @@ int main(int argc, char **argv) {
             std::cout << "Test regex" << std::endl;
             std::cout << "unconstrained test" << std::endl;
             btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
-            btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, true);
+            btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt);
             writeAcquisition(ikAcq, argv[2]);
             std::cout << "unconstrained test complete" << std::endl;
         } else {
