@@ -672,17 +672,10 @@ int main(int argc, char **argv) {
     std::string leftDelimOpen = "joints-left={";
     std::string rightDelimOpen = "joints-right={";
 
-    std::vector<int> leftPicksInt = getCommandLinePick(optionalArguments, leftDelimOpen, jointIdDelimiter,
-                                                       closingDelim);
-    std::vector<int> rightPicksInt = getCommandLinePick(optionalArguments, rightDelimOpen, jointIdDelimiter,
-                                                        closingDelim);
-
-    std::map<int, std::vector<double> > leftPicksAndConstraints = getCommandLinePickAndConstraint(
-            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
-            constraintsCloseDelimiter, constraintsBeginSequence);
-    std::map<int, std::vector<double> > rightPicksAndConstraints = getCommandLinePickAndConstraint(
-            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
-            constraintsCloseDelimiter, constraintsBeginSequence);
+    std::vector<int> leftPicksInt;
+    std::vector<int> rightPicksInt;
+    std::map<int, std::vector<double> > leftPicksAndConstraints;
+    std::map<int, std::vector<double> > rightPicksAndConstraints;
 
     if (argc >= 3 && inputStr.find(c3dFormatStr) != std::string::npos &&
         outputStr.find(c3dFormatStr) != std::string::npos) {
@@ -704,7 +697,10 @@ int main(int argc, char **argv) {
             } else {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "unconstrained test" << std::endl;
-                    btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
+                    rightPicksInt = getCommandLinePick(optionalArguments, rightDelimOpen, jointIdDelimiter,
+                                                       closingDelim);
+                    leftPicksInt = getCommandLinePick(optionalArguments, leftDelimOpen, jointIdDelimiter,
+                                                      closingDelim);
                     btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "unconstrained test complete" << std::endl;
@@ -719,6 +715,14 @@ int main(int argc, char **argv) {
             if (optionalArguments.find(staticMiddleRegexStr) != std::string::npos) {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "[WIP] Static middle constrained test" << std::endl;
+                    leftPicksAndConstraints = getCommandLinePickAndConstraint(
+                            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            constraintsCloseDelimiter, constraintsBeginSequence);
+
+                    rightPicksAndConstraints = getCommandLinePickAndConstraint(
+                            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            constraintsCloseDelimiter, constraintsBeginSequence);
+
                     btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
                                                                          rightPicksAndConstraints);
