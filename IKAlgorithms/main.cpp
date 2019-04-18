@@ -595,6 +595,15 @@ getCommandLinePickAndConstraint(const std::string &inputString, const std::strin
                                 const char &delimiterInbetweenConstraints, const std::string &closingDelim,
                                 const char &delimiterBetweenids, const std::string &endOfConstraint,
                                 const std::string idToConstraintsPointerString) {
+    std::cout << std::endl;
+    std::cout << "Input String: " << inputString << std::endl;
+    std::cout << "Open delim: " << openDelimiter << std::endl;
+    std::cout << "Delimiter in between Constraints: " << delimiterInbetweenConstraints << std::endl;
+    std::cout << "Closing Delimiter: " << closingDelim << std::endl;
+    std::cout << "Delimiter Between Ids: " << delimiterBetweenids << std::endl;
+    std::cout << "End of Constraints: " << endOfConstraint << std::endl;
+    std::cout << "Id to Constraints Pointer String: " << idToConstraintsPointerString << std::endl;
+
 
     std::map<int, std::vector<double> > picksIntegerVector;
     std::vector<double> constraintsVector;
@@ -639,6 +648,7 @@ getCommandLinePickAndConstraint(const std::string &inputString, const std::strin
 
 int main(int argc, char **argv) {
 
+    std::cout << "Hello" << std::endl;
     std::string optionalArguments = "";
     std::string unconstrainedStr("-u");
     std::string constrainedStr("-c");
@@ -723,7 +733,6 @@ int main(int argc, char **argv) {
                             optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
                             constraintsCloseDelimiter, constraintsBeginSequence);
 
-                    btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
                                                                          rightPicksAndConstraints);
                     writeAcquisition(ikAcq, argv[2]);
@@ -739,7 +748,14 @@ int main(int argc, char **argv) {
             } else {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "Test constraint " << std::endl;
-                    btk::Acquisition::Pointer acq = readAcquisition("/vagrant/data/forward_jumping_jacks.c3d");
+                    leftPicksAndConstraints = getCommandLinePickAndConstraint(
+                            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            constraintsCloseDelimiter, constraintsBeginSequence);
+
+                    rightPicksAndConstraints = getCommandLinePickAndConstraint(
+                            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            constraintsCloseDelimiter, constraintsBeginSequence);
+
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
                                                                          rightPicksAndConstraints);
                     writeAcquisition(ikAcq, argv[2]);

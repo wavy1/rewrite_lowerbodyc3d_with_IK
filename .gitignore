@@ -12,3 +12,5 @@ build/
 cmake-build-debug/
 .idea/
 result/*.c3d
+result/optitrack/*.c3d
+result/rizoli/*.c3d

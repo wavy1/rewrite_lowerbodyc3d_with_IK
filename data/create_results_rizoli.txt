@@ -1,0 +1,61 @@
+sudo ./IKAlgorithms /vagrant/data/rizoli/jog_001.c3d /home/vagrant/rizoli/jog_001.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/jog_001.c3d /vagrant/result/rizoli/jog_001.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_001.c3d /home/vagrant/rizoli/jumping_jacks_001.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/jumping_jacks_001.c3d /vagrant/result/rizoli/jumping_jacks_001.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_002.c3d /home/vagrant/rizoli/jumping_jacks_002.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/jumping_jacks_002.c3d /vagrant/result/rizoli/jumping_jacks_002.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_003.c3d /home/vagrant/rizoli/jumping_jacks_003.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/jumping_jacks_003.c3d /vagrant/result/rizoli/jumping_jacks_003.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_cross_right_001.c3d /home/vagrant/rizoli/jumping_jacks_cross_right_001.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/jumping_jacks_cross_right_001.c3d /vagrant/result/rizoli/jumping_jacks_cross_right_001.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_forward_001.c3d /home/vagrant/rizoli/jumping_jacks_forward_001.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/jumping_jacks_forward_001.c3d /vagrant/result/rizoli/jumping_jacks_forward_001.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_001.c3d /home/vagrant/rizoli/walk_001.c3d -u -t '--joints-right={5;14;22;21}' '--joints-left={4;6;13;12}'
+cp /home/vagrant/rizoli/walk_001.c3d /vagrant/result/rizoli/walk_001.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_002.c3d /home/vagrant/rizoli/walk_002.c3d -u -t '--joints-right={5;13;21;20}' '--joints-left={4;6;12;11}'
+cp /home/vagrant/rizoli/walk_002.c3d /vagrant/result/rizoli/walk_002.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_003.c3d /home/vagrant/rizoli/walk_003.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/walk_003.c3d /vagrant/result/rizoli/walk_003.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_faster_001.c3d /home/vagrant/rizoli/walk_faster_001.c3d -u -t '--joints-right={5;15;23;22}' '--joints-left={4;6;14;13}'
+cp /home/vagrant/rizoli/walk_faster_001.c3d /vagrant/result/rizoli/walk_faster_001.c3d
+
+--
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jog_001.c3d /home/vagrant/rizoli/jumping_jacks_001_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/jumping_jacks_001_constraint.c3d /vagrant/result/rizoli/jumping_jacks_001_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_001.c3d /home/vagrant/rizoli/jog_001_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/jog_001_constraint.c3d /vagrant/result/rizoli/jog_001_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_002.c3d /home/vagrant/rizoli/jumping_jacks_002_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/jumping_jacks_002_constraint.c3d /vagrant/result/rizoli/jumping_jacks_002_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_003.c3d /home/vagrant/rizoli/jumping_jacks_003_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/jumping_jacks_003_constraint.c3d /vagrant/result/rizoli/jumping_jacks_003_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_cross_right_001.c3d /home/vagrant/rizoli/jumping_jacks_cross_right_001_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/jumping_jacks_cross_right_001_constraint.c3d /vagrant/result/rizoli/jumping_jacks_cross_right_001_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/jumping_jacks_forward_001.c3d /home/vagrant/rizoli/jumping_jacks_forward_001_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/jumping_jacks_forward_001_constraint.c3d /vagrant/result/rizoli/jumping_jacks_forward_001_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_001.c3d /home/vagrant/rizoli/walk_001_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];14->[30.0,30.0,1.0,1.0];22->[10.0,10.0,10.0,10.0];21->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];13->[10.0,10.0,10.0,10.0];12->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/walk_001_constraint.c3d /vagrant/result/rizoli/walk_001_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_002.c3d /home/vagrant/rizoli/walk_002_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];13->[30.0,30.0,1.0,1.0];21->[10.0,10.0,10.0,10.0];20->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];12->[10.0,10.0,10.0,10.0];11->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/walk_002_constraint.c3d /vagrant/result/rizoli/walk_002_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_003.c3d /home/vagrant/rizoli/walk_003_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/walk_003_constraint.c3d /vagrant/result/rizoli/walk_003_constraint.c3d
+
+sudo ./IKAlgorithms /vagrant/data/rizoli/walk_faster_001.c3d /home/vagrant/rizoli/walk_faster_001_constraint.c3d -c -t '--joints-constraints-right={5->[10.0,10.0,10.0,10.0];15->[30.0,30.0,1.0,1.0];23->[10.0,10.0,10.0,10.0];22->[0.0,0.0,0.0,0.0]}' '--joints-constraints-left={4->[10.0,10.0,10.0,10.0];6->[30.0,30.0,1.0,1.0];14->[10.0,10.0,10.0,10.0];13->[0.0,0.0,0.0,0.0]}'
+cp /home/vagrant/rizoli/walk_faster_001_constraint.c3d /vagrant/result/rizoli/walk_faster_001_constraint.c3d

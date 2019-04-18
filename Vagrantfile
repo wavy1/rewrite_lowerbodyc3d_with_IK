@@ -77,5 +77,8 @@ Vagrant.configure("2") do |config|
     sudo mkdir build && cd build
     sudo cmake ..
     sudo make
+    cd /home/vagrant/
+    sudo mkdir optitrack
+    sudo mkdir rizoli
   SHELL
 end

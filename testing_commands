@@ -1,3 +1,0 @@
-/vagrant/data/forward_jumping_jacks.c3d /home/vagrant/forward_jumping_jacks.c3d -u -t --joints-constraints-right={1;12;18;19} --joints-constraints-left={0;4;10;11}
-
-/vagrant/data/forward_jumping_jacks.c3d /home/vagrant/forward_jumping_jacks.c3d -c --joints-constraints-right={1->[10.0,10.0,10.0,10.0];12->[30.0,30.0,1.0,1.0];18->[10.0,10.0,10.0,10.0];19->[1.0,1.0,1.0,1.0]} --joints-constraint-left={0->[10.0,10.0,10.0,10.0];4->[30.0,30.0,1.0,1.0];10->[10.0,10.0,10.0,10.0];11->[1.0,1.0,1.0,1.0]}
