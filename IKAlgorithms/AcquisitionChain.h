@@ -35,6 +35,8 @@ public:
 
     void calculateDistancesDebugless(std::vector<Eigen::Vector3d> joints);
 
+    void writeDistancesIntoCSV(std::vector<Eigen::Vector3d> joints, std::string filename, int frameNumber, bool isEndLine);
+
     float getSetSumOfAllLenghts();
 
     std::vector<float> getDistances();

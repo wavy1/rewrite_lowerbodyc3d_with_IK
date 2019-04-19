@@ -46,12 +46,6 @@ std::vector<btk::Point::Pointer> AcquisitionChain::getPoints() {
          peter != stringToPointMap.end(); ++peter) {
         my_vals.push_back(peter->second);
     }
-    /* std::vector<btk::Point::Pointer> my_vals;
-    std::transform(this->stringToPointMap.begin(), this->stringToPointMap.end(), std::back_inserter(my_vals),
-                   [this](const std::pair<std::string, btk::Point::Pointer> &val) -> btk::Point::Pointer {
-                       return val.second;
-                   });
-     */
     return my_vals;
 }
 
@@ -64,12 +58,6 @@ std::vector<Eigen::Vector3d> AcquisitionChain::getPositionsPerFrame(int frameNum
         my_vals.push_back(pointAt(peter->second, frameNumber));
     }
 
-    /*
-    std::transform(this->stringToPointMap.begin(), this->stringToPointMap.end(), std::back_inserter(my_vals),
-                   [this, frameNumber](const std::pair<std::string, btk::Point::Pointer> &val) -> Eigen::Vector3d {
-                       return pointAt(val.second, frameNumber);
-                   });
-     */
     return my_vals;
 }
 
@@ -83,13 +71,6 @@ AcquisitionChain::getDebuggablePairsVectorOfFrame(int frameNumber) {
         my_map.push_back(std::make_pair(ptr->second.first, pointAt(ptr->second.second, frameNumber)));
     }
 
-    /*
-    std::transform(this->stringToPointMapDebuggable.begin(), this->stringToPointMapDebuggable.end(),
-                   std::back_inserter(my_map), [this, frameNumber](
-                    const std::pair<std::string, std::pair<std::string, btk::Point::Pointer> > &val) -> std::pair<std::string, Eigen::Vector3d> {
-                return std::make_pair(val.second.first, pointAt(val.second.second, frameNumber));
-            });
-     */
     return my_map;
 }
 
@@ -111,6 +92,45 @@ void AcquisitionChain::calculateDistancesDebugless(std::vector<Eigen::Vector3d> 
         }
     }
     std::cout << "[AcqChain] distance" << this->distances.size() << std::endl;
+}
+
+std::vector<double> calculateDistances(std::vector<Eigen::Vector3d> joints) {
+    std::vector<double> distances;
+
+    std::cout << "[AcqChain] Size of Joints" << joints.size() << std::endl;
+    for (size_t index = 0; index < joints.size(); ++index) {
+        if (index + 1 < joints.size()) {
+            std::cout << "[AcqChain]" << " distance for " << "P" << index << ":[" <<
+                      joints.at(index).coeff(0) << ", " << joints.at(index).coeff(1) << ", "
+                      << joints.at(index).coeff(2) << std::endl;
+            std::cout << "[AcqChain]" << " distance for " << "P" << index + 1 << ":[" <<
+                      joints.at(index + 1).coeff(0) << ", " << joints.at(index + 1).coeff(1) << ", "
+                      << joints.at(index + 1).coeff(2) << std::endl;
+
+            distances.push_back((joints.at(index + 1) - joints.at(index)).norm());
+        }
+    }
+    return distances;
+}
+
+void AcquisitionChain::writeDistancesIntoCSV(std::vector<Eigen::Vector3d> joints, std::string filename, int frameNumber, bool isEndLine){
+    std::ofstream distancesCSV;
+
+    distancesCSV.open(filename.c_str(), std::ios::app | std::ios::out);
+    std::vector<double> distances = calculateDistances(joints);
+
+    for(size_t index = 0; index < distances.size(); ++index) {
+        if(!isEndLine && index == 0){
+            distancesCSV << frameNumber << ";";
+        }
+        if (isEndLine && index + 1  == distances.size()) {
+            distancesCSV << distances.at(index) << "\n";
+            break;
+        }
+        distancesCSV << distances.at(index) << ";";
+    }
+
+    distancesCSV.close();
 }
 
 float AcquisitionChain::getSetSumOfAllLenghts() {

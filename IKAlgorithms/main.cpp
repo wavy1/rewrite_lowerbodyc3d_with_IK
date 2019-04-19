@@ -404,9 +404,10 @@ btk::Acquisition::Pointer writeIkUnconstrainedWithOrigin(const btk::Acquisition:
 
 btk::Acquisition::Pointer
 writeIkUnconstrained(const btk::Acquisition::Pointer acq, std::vector<int> commandLinePicksRight,
-                     std::vector<int> commandLinePicksLeft) {
+                     std::vector<int> commandLinePicksLeft, std::string csvFileName = "") {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
+    std::ofstream distancesCSV;
     float tolerance = 0.00001f;
 
     std::cout << "Choice left" << std::endl;
@@ -432,6 +433,21 @@ writeIkUnconstrained(const btk::Acquisition::Pointer acq, std::vector<int> comma
     FabrikSolve fabrikSolveRight(rightChain, tolerance, false);
     FabrikSolve fabrikSolveLeft(leftChain, tolerance, false);
 
+    if(csvFileName.length() > 0){
+        distancesCSV.open(csvFileName.c_str());
+        for(size_t index = 0; index < leftChain.getDistances().size(); ++index){
+            distancesCSV << ";L" << index << "-L" << index+1;
+        }
+
+        for(size_t index = 0; index < rightChain.getDistances().size(); ++index){
+            distancesCSV << ";R" << index << "-R" << index+1;
+            if(index + 1 == rightChain.getDistances().size()){
+                distancesCSV << "\n";
+            }
+        }
+        distancesCSV.close();
+    }
+
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
     for (size_t index = 1; index < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
@@ -444,16 +460,21 @@ writeIkUnconstrained(const btk::Acquisition::Pointer acq, std::vector<int> comma
                                               fabrikSolveRight,
                                               printAcquisition);
 
+        if(std::string(csvFileName).length() > 0) {
+            leftChain.writeDistancesIntoCSV(fabrikSolveLeft.getJoints(), csvFileName, index, false);
+            rightChain.writeDistancesIntoCSV(fabrikSolveRight.getJoints(), csvFileName, index, true);
+        }
+
     }
     return printAcquisition;
 }
 
 
-btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq,
-                                             std::map<int, std::vector<double> > leftPicksAndConstraints,
-                                             std::map<int, std::vector<double> > rightPicksAndConstraints) {
+btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq, std::map<int, std::vector<double> > leftPicksAndConstraints,
+                                             std::map<int, std::vector<double> > rightPicksAndConstraints, std::string csvFileName = "") {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
+    std::ofstream distancesCSV;
     float tolerance = 0.00001f;
 
     std::cout << "Choice left" << std::endl;
@@ -505,17 +526,36 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
     std::vector<std::pair<int, btk::Point::Pointer> > rightOutputPoints;
     prepareOutputWithConstraints(acq, leftChain, leftPointPicks, jointIdsAngleConstraintsLeftMap, leftOutputPoints);
     prepareOutputWithConstraints(acq, rightChain, rightPointPicks, jointIdsAngleConstraintsRightMap, rightOutputPoints);
-
     leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
     rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
+
+    if(csvFileName.length() > 0){
+        distancesCSV.open(csvFileName.c_str());
+        for(size_t index = 0; index < leftChain.getDistances().size(); ++index){
+            distancesCSV << ";L" << index << "-L" << index+1;
+        }
+
+        for(size_t index = 0; index < rightChain.getDistances().size(); ++index){
+            distancesCSV << ";R" << index << "-R" << index+1;
+            if(index + 1 == rightChain.getDistances().size()){
+                distancesCSV << "\n";
+            }
+        }
+        distancesCSV.close();
+    }
 
     FabrikSolve
             fabrikSolveRight(rightChain, tolerance, true);
     FabrikSolve
             fabrikSolveLeft(leftChain, tolerance, true);
 
+    if(std::string(csvFileName).length() > 0) {
+        leftChain.writeDistancesIntoCSV(fabrikSolveLeft.getJoints(), csvFileName, 0, false);
+        rightChain.writeDistancesIntoCSV(fabrikSolveRight.getJoints(), csvFileName, 0, true);
+    }
+
     std::cout << "Frames: " << acq->GetPointFrameNumber() << std::endl;
-    for (size_t index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
+    for (int index = 1; index + 1 < acq->GetPointFrameNumber(); index++) {
         std::cout << "Index: " << index << std::endl;
 
         fabrikSolveRight.setTarget(rightChain.pointAt(rightInputPoints.rbegin()->second, index));
@@ -529,7 +569,14 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
                                               leftOutputPoints, fabrikSolveLeft, rightOutputPoints,
                                               fabrikSolveRight,
                                               printAcquisition);
+
+        if(std::string(csvFileName).length() > 0) {
+            leftChain.writeDistancesIntoCSV(fabrikSolveLeft.getJoints(), csvFileName, index, false);
+            rightChain.writeDistancesIntoCSV(fabrikSolveRight.getJoints(), csvFileName, index, true);
+        }
+
     }
+    std::cout << csvFileName << std::string(csvFileName).length() << std::endl;
     return printAcquisition;
 }
 
@@ -648,7 +695,6 @@ getCommandLinePickAndConstraint(const std::string &inputString, const std::strin
 
 int main(int argc, char **argv) {
 
-    std::cout << "Hello" << std::endl;
     std::string optionalArguments = "";
     std::string unconstrainedStr("-u");
     std::string constrainedStr("-c");
@@ -665,6 +711,9 @@ int main(int argc, char **argv) {
         inputStr.append(argv[1]);
         outputStr.append(argv[2]);
     }
+    std::vector<std::string> strings = split(outputStr, '/');
+    std::string outputFileName = strings.at(strings.size()-1);
+    std::string outputName = (outputFileName.substr(0, outputFileName.length()-4) + "_distances.csv");
 
     std::cout << "Number args" << argc << std::endl;
 
@@ -711,12 +760,12 @@ int main(int argc, char **argv) {
                                                        closingDelim);
                     leftPicksInt = getCommandLinePick(optionalArguments, leftDelimOpen, jointIdDelimiter,
                                                       closingDelim);
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt);
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "unconstrained test complete" << std::endl;
                 } else {
                     std::cout << "unconstrained" << std::endl;
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt);
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "unconstrained complete" << std::endl;
                 }
@@ -757,12 +806,12 @@ int main(int argc, char **argv) {
                             constraintsCloseDelimiter, constraintsBeginSequence);
 
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
-                                                                         rightPicksAndConstraints);
+                                                                         rightPicksAndConstraints, outputName);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "Test constraint complete" << std::endl;
                 } else {
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
-                                                                         rightPicksAndConstraints);
+                                                                         rightPicksAndConstraints, outputName);
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "Just constrained" << std::endl;
                 }
@@ -784,5 +833,6 @@ int main(int argc, char **argv) {
                 << "usage: ./IKAlgorithms <inputC3D> <outputC3D> [-s for origin middle] [-u for unconstrained xor -c for constrained] [-t for test data]"
                 << std::endl << std::endl;
     }
+
     return 0;
 };
