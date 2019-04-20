@@ -306,3 +306,9 @@ FabrikSolve::FabrikSolve(AcquisitionChain chain, float tolerance, bool isConstra
     std::cout << "Constructor is executed\n" << std::endl;
 }
 
+void FabrikSolve::printDistances() {
+    for(std::vector<float>::iterator distancesIT = distances.begin(); distancesIT != distances.end(); ++distancesIT){
+        std::cout << *distancesIT << std::endl;
+    }
+}
+

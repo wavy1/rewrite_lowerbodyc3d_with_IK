@@ -570,6 +570,9 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
                                               fabrikSolveRight,
                                               printAcquisition);
 
+        fabrikSolveLeft.printDistances();
+        fabrikSolveRight.printDistances();
+
         if(std::string(csvFileName).length() > 0) {
             leftChain.writeDistancesIntoCSV(fabrikSolveLeft.getJoints(), csvFileName, index, false);
             rightChain.writeDistancesIntoCSV(fabrikSolveRight.getJoints(), csvFileName, index, true);
@@ -598,6 +601,64 @@ void split(const std::string &s, const std::string &sep, std::vector<std::string
             b = i;
         }
     }
+}
+
+void outputDifferenceCSV(btk::Acquisition::Pointer originalACQ, btk::Acquisition::Pointer modifiedACQ, std::string fileName){
+    std::cout << "print delta CSV" << std::endl;
+    btk::PointCollection::Pointer originalACQ_points = originalACQ->GetPoints();
+    btk::PointCollection::Pointer modifiedACQ_points = modifiedACQ->GetPoints();
+
+    std::ofstream origCSVStream;
+
+    origCSVStream.open(fileName.c_str());
+    origCSVStream << "\n;" ;
+    if (originalACQ_points->GetItemNumber() != 0) {
+        for (btk::Acquisition::PointIterator it = originalACQ_points->Begin(); it != originalACQ_points->End(); ++it) {
+
+            origCSVStream  << it->get()->GetLabel() << ";;;";
+
+        }
+        origCSVStream << "\n;";
+        for (btk::Acquisition::PointIterator it = originalACQ_points->Begin(); it != originalACQ_points->End(); ++it) {
+
+            origCSVStream << "x;y;z;";
+
+        }
+        origCSVStream << "\n";
+        for (size_t f = 0; f < originalACQ_points->GetFrontItem()->GetFrameNumber(); ++f) {
+            origCSVStream << f << ";";
+
+            for (btk::Acquisition::PointIterator it = originalACQ_points->Begin(); it != originalACQ_points->End(); ++it) {
+                btk::Point::Pointer pt = *it;
+                origCSVStream << pt->GetValues().coeff(f, 0) << ";" << pt->GetValues().coeff(f, 1) << ";" << pt->GetValues().coeff(f, 2) << ";";
+            }
+            origCSVStream << "\n";
+        }
+    }
+
+    origCSVStream << "Modified\n" ;
+    if (modifiedACQ_points->GetItemNumber() != 0) {
+        for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin(); it != modifiedACQ_points->End(); ++it) {
+
+            origCSVStream << it->get()->GetLabel() << ";;;";
+        }
+        origCSVStream << "\n;";
+        for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin(); it != modifiedACQ_points->End(); ++it) {
+            origCSVStream << "x;y;z;";
+        }
+        origCSVStream << "\n";
+        for (size_t f = 0; f < modifiedACQ_points->GetFrontItem()->GetFrameNumber(); ++f) {
+            origCSVStream << f << ";";
+
+            for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin(); it != modifiedACQ_points->End(); ++it) {
+                btk::Point::Pointer pt = *it;
+                origCSVStream << pt->GetValues().coeff(f, 0) << ";" << pt->GetValues().coeff(f, 1) << ";" << pt->GetValues().coeff(f, 2) << ";";
+            }
+            origCSVStream << "\n";
+        }
+    }
+
+    origCSVStream.close();
 }
 
 template<typename Out>
@@ -762,6 +823,7 @@ int main(int argc, char **argv) {
                                                       closingDelim);
                     btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName);
                     writeAcquisition(ikAcq, argv[2]);
+                    outputDifferenceCSV(acq, ikAcq, outputFileName + "_delta.csv");
                     std::cout << "unconstrained test complete" << std::endl;
                 } else {
                     std::cout << "unconstrained" << std::endl;
@@ -808,6 +870,7 @@ int main(int argc, char **argv) {
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
                                                                          rightPicksAndConstraints, outputName);
                     writeAcquisition(ikAcq, argv[2]);
+                    outputDifferenceCSV(acq, ikAcq, outputFileName + "_delta.csv");
                     std::cout << "Test constraint complete" << std::endl;
                 } else {
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,

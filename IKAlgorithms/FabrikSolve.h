@@ -33,6 +33,7 @@ public:
 
     void chain_forwards();
     void setAllConeConstraints(const float up, const float down, const float left, const float right);
+    void printDistances();
 
     Eigen::Vector3d
     chain_constrain(Eigen::Vector3d calc, Eigen::Vector3d line, Eigen::Matrix4d direction);
