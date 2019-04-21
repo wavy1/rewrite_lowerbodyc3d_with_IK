@@ -774,7 +774,7 @@ int main(int argc, char **argv) {
     }
     std::vector<std::string> strings = split(outputStr, '/');
     std::string outputFileName = strings.at(strings.size()-1);
-    std::string outputName = (outputFileName.substr(0, outputFileName.length()-4) + "_distances.csv");
+    std::string outputName = "/vagrant/result/" + (outputFileName.substr(0, outputFileName.length()-4));
 
     std::cout << "Number args" << argc << std::endl;
 
@@ -821,13 +821,13 @@ int main(int argc, char **argv) {
                                                        closingDelim);
                     leftPicksInt = getCommandLinePick(optionalArguments, leftDelimOpen, jointIdDelimiter,
                                                       closingDelim);
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName);
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName  + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
-                    outputDifferenceCSV(acq, ikAcq, outputFileName + "_delta.csv");
+                    outputDifferenceCSV(acq, ikAcq, outputName + "_delta.csv");
                     std::cout << "unconstrained test complete" << std::endl;
                 } else {
                     std::cout << "unconstrained" << std::endl;
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName);
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName  + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "unconstrained complete" << std::endl;
                 }
@@ -868,13 +868,13 @@ int main(int argc, char **argv) {
                             constraintsCloseDelimiter, constraintsBeginSequence);
 
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
-                                                                         rightPicksAndConstraints, outputName);
+                                                                         rightPicksAndConstraints, outputName  + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
-                    outputDifferenceCSV(acq, ikAcq, outputFileName + "_delta.csv");
+                    outputDifferenceCSV(acq, ikAcq, outputName + "_delta.csv");
                     std::cout << "Test constraint complete" << std::endl;
                 } else {
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
-                                                                         rightPicksAndConstraints, outputName);
+                                                                         rightPicksAndConstraints, outputName  + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "Just constrained" << std::endl;
                 }
