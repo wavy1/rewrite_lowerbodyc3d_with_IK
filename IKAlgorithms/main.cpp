@@ -7,6 +7,7 @@
 #include <iostream>
 #include <algorithm>
 #include <iterator>
+#include <cmath>
 #include <tr1/regex>
 #include <sstream>
 #include "FabrikSolve.h"
@@ -433,15 +434,15 @@ writeIkUnconstrained(const btk::Acquisition::Pointer acq, std::vector<int> comma
     FabrikSolve fabrikSolveRight(rightChain, tolerance, false);
     FabrikSolve fabrikSolveLeft(leftChain, tolerance, false);
 
-    if(csvFileName.length() > 0){
+    if (csvFileName.length() > 0) {
         distancesCSV.open(csvFileName.c_str());
-        for(size_t index = 0; index < leftChain.getDistances().size(); ++index){
-            distancesCSV << ";L" << index << "-L" << index+1;
+        for (size_t index = 0; index < leftChain.getDistances().size(); ++index) {
+            distancesCSV << ";L" << index << "-L" << index + 1;
         }
 
-        for(size_t index = 0; index < rightChain.getDistances().size(); ++index){
-            distancesCSV << ";R" << index << "-R" << index+1;
-            if(index + 1 == rightChain.getDistances().size()){
+        for (size_t index = 0; index < rightChain.getDistances().size(); ++index) {
+            distancesCSV << ";R" << index << "-R" << index + 1;
+            if (index + 1 == rightChain.getDistances().size()) {
                 distancesCSV << "\n";
             }
         }
@@ -460,7 +461,7 @@ writeIkUnconstrained(const btk::Acquisition::Pointer acq, std::vector<int> comma
                                               fabrikSolveRight,
                                               printAcquisition);
 
-        if(std::string(csvFileName).length() > 0) {
+        if (std::string(csvFileName).length() > 0) {
             leftChain.writeDistancesIntoCSV(fabrikSolveLeft.getJoints(), csvFileName, index, false);
             rightChain.writeDistancesIntoCSV(fabrikSolveRight.getJoints(), csvFileName, index, true);
         }
@@ -470,8 +471,9 @@ writeIkUnconstrained(const btk::Acquisition::Pointer acq, std::vector<int> comma
 }
 
 
-btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq, std::map<int, std::vector<double> > leftPicksAndConstraints,
-                                             std::map<int, std::vector<double> > rightPicksAndConstraints, std::string csvFileName = "") {
+btk::Acquisition::Pointer
+writeIkConstrained(const btk::Acquisition::Pointer acq, std::map<int, std::vector<double> > leftPicksAndConstraints,
+                   std::map<int, std::vector<double> > rightPicksAndConstraints, std::string csvFileName = "") {
     AcquisitionChain rightChain;
     AcquisitionChain leftChain;
     std::ofstream distancesCSV;
@@ -529,15 +531,15 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
     leftChain.calculateDistancesDebugless(leftChain.getPositionsPerFrame(0));
     rightChain.calculateDistancesDebugless(rightChain.getPositionsPerFrame(0));
 
-    if(csvFileName.length() > 0){
+    if (csvFileName.length() > 0) {
         distancesCSV.open(csvFileName.c_str());
-        for(size_t index = 0; index < leftChain.getDistances().size(); ++index){
-            distancesCSV << ";L" << index << "-L" << index+1;
+        for (size_t index = 0; index < leftChain.getDistances().size(); ++index) {
+            distancesCSV << ";L" << index << "-L" << index + 1;
         }
 
-        for(size_t index = 0; index < rightChain.getDistances().size(); ++index){
-            distancesCSV << ";R" << index << "-R" << index+1;
-            if(index + 1 == rightChain.getDistances().size()){
+        for (size_t index = 0; index < rightChain.getDistances().size(); ++index) {
+            distancesCSV << ";R" << index << "-R" << index + 1;
+            if (index + 1 == rightChain.getDistances().size()) {
                 distancesCSV << "\n";
             }
         }
@@ -549,7 +551,7 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
     FabrikSolve
             fabrikSolveLeft(leftChain, tolerance, true);
 
-    if(std::string(csvFileName).length() > 0) {
+    if (std::string(csvFileName).length() > 0) {
         leftChain.writeDistancesIntoCSV(fabrikSolveLeft.getJoints(), csvFileName, 0, false);
         rightChain.writeDistancesIntoCSV(fabrikSolveRight.getJoints(), csvFileName, 0, true);
     }
@@ -573,7 +575,7 @@ btk::Acquisition::Pointer writeIkConstrained(const btk::Acquisition::Pointer acq
         fabrikSolveLeft.printDistances();
         fabrikSolveRight.printDistances();
 
-        if(std::string(csvFileName).length() > 0) {
+        if (std::string(csvFileName).length() > 0) {
             leftChain.writeDistancesIntoCSV(fabrikSolveLeft.getJoints(), csvFileName, index, false);
             rightChain.writeDistancesIntoCSV(fabrikSolveRight.getJoints(), csvFileName, index, true);
         }
@@ -603,7 +605,8 @@ void split(const std::string &s, const std::string &sep, std::vector<std::string
     }
 }
 
-void outputDifferenceCSV(btk::Acquisition::Pointer originalACQ, btk::Acquisition::Pointer modifiedACQ, std::string fileName){
+void outputDifferenceCSV(btk::Acquisition::Pointer originalACQ, btk::Acquisition::Pointer modifiedACQ,
+                         std::string fileName) {
     std::cout << "print delta CSV" << std::endl;
     btk::PointCollection::Pointer originalACQ_points = originalACQ->GetPoints();
     btk::PointCollection::Pointer modifiedACQ_points = modifiedACQ->GetPoints();
@@ -611,11 +614,11 @@ void outputDifferenceCSV(btk::Acquisition::Pointer originalACQ, btk::Acquisition
     std::ofstream origCSVStream;
 
     origCSVStream.open(fileName.c_str());
-    origCSVStream << "\n;" ;
+    origCSVStream << "\n;";
     if (originalACQ_points->GetItemNumber() != 0) {
         for (btk::Acquisition::PointIterator it = originalACQ_points->Begin(); it != originalACQ_points->End(); ++it) {
 
-            origCSVStream  << it->get()->GetLabel() << ";;;";
+            origCSVStream << it->get()->GetLabel() << ";;;";
 
         }
         origCSVStream << "\n;";
@@ -628,15 +631,17 @@ void outputDifferenceCSV(btk::Acquisition::Pointer originalACQ, btk::Acquisition
         for (size_t f = 0; f < originalACQ_points->GetFrontItem()->GetFrameNumber(); ++f) {
             origCSVStream << f << ";";
 
-            for (btk::Acquisition::PointIterator it = originalACQ_points->Begin(); it != originalACQ_points->End(); ++it) {
+            for (btk::Acquisition::PointIterator it = originalACQ_points->Begin();
+                 it != originalACQ_points->End(); ++it) {
                 btk::Point::Pointer pt = *it;
-                origCSVStream << pt->GetValues().coeff(f, 0) << ";" << pt->GetValues().coeff(f, 1) << ";" << pt->GetValues().coeff(f, 2) << ";";
+                origCSVStream << pt->GetValues().coeff(f, 0) << ";" << pt->GetValues().coeff(f, 1) << ";"
+                              << pt->GetValues().coeff(f, 2) << ";";
             }
             origCSVStream << "\n";
         }
     }
 
-    origCSVStream << "Modified\n" ;
+    origCSVStream << "Modified\n;";
     if (modifiedACQ_points->GetItemNumber() != 0) {
         for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin(); it != modifiedACQ_points->End(); ++it) {
 
@@ -650,12 +655,59 @@ void outputDifferenceCSV(btk::Acquisition::Pointer originalACQ, btk::Acquisition
         for (size_t f = 0; f < modifiedACQ_points->GetFrontItem()->GetFrameNumber(); ++f) {
             origCSVStream << f << ";";
 
-            for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin(); it != modifiedACQ_points->End(); ++it) {
+            for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin();
+                 it != modifiedACQ_points->End(); ++it) {
                 btk::Point::Pointer pt = *it;
-                origCSVStream << pt->GetValues().coeff(f, 0) << ";" << pt->GetValues().coeff(f, 1) << ";" << pt->GetValues().coeff(f, 2) << ";";
+                origCSVStream << pt->GetValues().coeff(f, 0) << ";" << pt->GetValues().coeff(f, 1) << ";"
+                              << pt->GetValues().coeff(f, 2) << ";";
             }
             origCSVStream << "\n";
         }
+    }
+
+    origCSVStream << "\n;";
+
+    originalACQ_points = originalACQ->GetPoints();
+    modifiedACQ_points = modifiedACQ->GetPoints();
+
+    btk::Acquisition::PointIterator oriIt = originalACQ_points->Begin();
+    btk::Acquisition::PointIterator modiIt = modifiedACQ_points->Begin();
+
+    for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin(); it != modifiedACQ_points->End(); ++it) {
+
+        origCSVStream << it->get()->GetLabel() << ";;;;;;;";
+    }
+    origCSVStream << "\nframe;";
+    for (btk::Acquisition::PointIterator it = modifiedACQ_points->Begin(); it != modifiedACQ_points->End(); ++it) {
+        origCSVStream <<  "x;absx;y;absy;z;absz;magn;";
+    }
+    origCSVStream << "\n";
+    for (size_t f = 0; f < modifiedACQ_points->GetFrontItem()->GetFrameNumber(); ++f) {
+        oriIt = originalACQ_points->Begin();
+        modiIt = modifiedACQ_points->Begin();
+        origCSVStream << f << ";";
+        while (oriIt != originalACQ_points->End() || modiIt != modifiedACQ_points->End()) {
+            origCSVStream <<
+                          oriIt->get()->GetValues().coeff(f, 0) - modiIt->get()->GetValues().coeff(f, 0) << ";"
+                          << std::abs(oriIt->get()->GetValues().coeff(f, 0) - modiIt->get()->GetValues().coeff(f, 0))
+                          << ";"
+                          << oriIt->get()->GetValues().coeff(f, 1) - modiIt->get()->GetValues().coeff(f, 1) << ";"
+                          << std::abs(oriIt->get()->GetValues().coeff(f, 1) - modiIt->get()->GetValues().coeff(f, 1))
+                          << ";"
+                          << oriIt->get()->GetValues().coeff(f, 2) - modiIt->get()->GetValues().coeff(f, 2) << ";"
+                          << std::abs(oriIt->get()->GetValues().coeff(f, 2) - modiIt->get()->GetValues().coeff(f, 2))
+                          << ";"
+                          << std::sqrt(
+                                  std::pow(oriIt->get()->GetValues().coeff(f, 0) -
+                                           modiIt->get()->GetValues().coeff(f, 0), 2) +
+                                  std::pow(oriIt->get()->GetValues().coeff(f, 1) -
+                                           modiIt->get()->GetValues().coeff(f, 1), 2) +
+                                  std::pow(oriIt->get()->GetValues().coeff(f, 2) -
+                                           modiIt->get()->GetValues().coeff(f, 2), 2)) << ";";
+            ++modiIt;
+            ++oriIt;
+        }
+        origCSVStream << "\n";
     }
 
     origCSVStream.close();
@@ -773,8 +825,8 @@ int main(int argc, char **argv) {
         outputStr.append(argv[2]);
     }
     std::vector<std::string> strings = split(outputStr, '/');
-    std::string outputFileName = strings.at(strings.size()-1);
-    std::string outputName = "/vagrant/result/" + (outputFileName.substr(0, outputFileName.length()-4));
+    std::string outputFileName = strings.at(strings.size() - 1);
+    std::string outputName = "/vagrant/result/" + (outputFileName.substr(0, outputFileName.length() - 4));
 
     std::cout << "Number args" << argc << std::endl;
 
@@ -821,13 +873,15 @@ int main(int argc, char **argv) {
                                                        closingDelim);
                     leftPicksInt = getCommandLinePick(optionalArguments, leftDelimOpen, jointIdDelimiter,
                                                       closingDelim);
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName  + "_distances.csv");
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt,
+                                                                           outputName + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
                     outputDifferenceCSV(acq, ikAcq, outputName + "_delta.csv");
                     std::cout << "unconstrained test complete" << std::endl;
                 } else {
                     std::cout << "unconstrained" << std::endl;
-                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt, outputName  + "_distances.csv");
+                    btk::Acquisition::Pointer ikAcq = writeIkUnconstrained(acq, rightPicksInt, leftPicksInt,
+                                                                           outputName + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "unconstrained complete" << std::endl;
                 }
@@ -837,11 +891,13 @@ int main(int argc, char **argv) {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "[WIP] Static middle constrained test" << std::endl;
                     leftPicksAndConstraints = getCommandLinePickAndConstraint(
-                            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim,
+                            jointIdDelimiter,
                             constraintsCloseDelimiter, constraintsBeginSequence);
 
                     rightPicksAndConstraints = getCommandLinePickAndConstraint(
-                            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim,
+                            jointIdDelimiter,
                             constraintsCloseDelimiter, constraintsBeginSequence);
 
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
@@ -860,21 +916,25 @@ int main(int argc, char **argv) {
                 if (optionalArguments.find(testRegexStr) != std::string::npos) {
                     std::cout << "Test constraint " << std::endl;
                     leftPicksAndConstraints = getCommandLinePickAndConstraint(
-                            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            optionalArguments, leftJointsAndConstraintsOpen, constraintsDelimiter, closingDelim,
+                            jointIdDelimiter,
                             constraintsCloseDelimiter, constraintsBeginSequence);
 
                     rightPicksAndConstraints = getCommandLinePickAndConstraint(
-                            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim, jointIdDelimiter,
+                            optionalArguments, rightJointsAndConstraintsOpen, constraintsDelimiter, closingDelim,
+                            jointIdDelimiter,
                             constraintsCloseDelimiter, constraintsBeginSequence);
 
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
-                                                                         rightPicksAndConstraints, outputName  + "_distances.csv");
+                                                                         rightPicksAndConstraints,
+                                                                         outputName + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
                     outputDifferenceCSV(acq, ikAcq, outputName + "_delta.csv");
                     std::cout << "Test constraint complete" << std::endl;
                 } else {
                     btk::Acquisition::Pointer ikAcq = writeIkConstrained(acq, leftPicksAndConstraints,
-                                                                         rightPicksAndConstraints, outputName  + "_distances.csv");
+                                                                         rightPicksAndConstraints,
+                                                                         outputName + "_distances.csv");
                     writeAcquisition(ikAcq, argv[2]);
                     std::cout << "Just constrained" << std::endl;
                 }
